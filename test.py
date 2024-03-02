@@ -1,3 +1,1 @@
-# this is not a test
-
-# Path: test.py
+# this is a test file
