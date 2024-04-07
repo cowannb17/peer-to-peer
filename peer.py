@@ -1,6 +1,5 @@
 # Code for peer client of peer-to-peer system
 import socket
-import threading
 import tkinter as tk
 
 window = tk.Tk()
@@ -8,13 +7,39 @@ window.geometry("400x150")
 
 frame = tk.Frame(window)
 
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+def initialize_connection():
+    try:
+        sock.connect(('127.0.0.1', 12756))
+        data = sock.recv(1024)
+        if data == b'secure_code':
+            print("Good to Go")
+            return True
+    except:
+        sock.close()
+        return False
+    sock.close()
+    return False
+
 def clearFrame():
     for widget in frame.winfo_children():
         widget.destroy()
 
 def offered_files_frame():
+    sock.send(b'down_list')
+    data = sock.recv(1024)
+    data = data.decode()
+    print(data)
     window.title('Peer Client: Offered Files')
+    download_list = tk.Frame(frame)
+    download_checked = []
+    for filename in data.split(', '):
+        download_checked.append(tk.BooleanVar())
+        download_checked[-1].set(False)
+        tk.Checkbutton(frame, text=filename, variable=download_checked[-1]).pack()
     tk.Label(frame, text='Download Section').pack()
+    download_list.pack(side="top", fill="x")
     tk.Button(frame, text='Download').pack()
 
 def host_files_frame():
@@ -42,17 +67,20 @@ def settings_frame():
 
     tk.Button(options, text='Apply Settings').grid(sticky = tk.W+tk.E, row=3, column=0, columnspan=3)
 
-def root_window():
+def root_window(connected):
     window.title('Peer Client')
     header = tk.Frame(window)
     header.pack(side="top", fill="x")
     tk.Button(header, text='See Downloadable Files', command=lambda:[clearFrame(), offered_files_frame()]).pack(side="left", expand="True")
     tk.Button(header, text='Host a file', command=lambda:[clearFrame(), host_files_frame()]).pack(side="left", expand="True")
     tk.Button(header, text='Settings', command=lambda:[clearFrame(), settings_frame()]).pack(side="left", expand="True")
-    tk.Label(frame, text='Welcome to the peer-to-peer file sharing application!').pack()
+    welcome_text = 'Welcome to the peer-to-peer file sharing application!'
+    if not connected:
+         welcome_text = 'Something went wrong when conncting to the server! Try again'      
+    tk.Label(frame, text=welcome_text).pack()
     return window
 
-
-w = root_window()
+init = initialize_connection()
+w = root_window(init)
 frame.pack(side="top", expand=True, fill="both")
 w.mainloop()

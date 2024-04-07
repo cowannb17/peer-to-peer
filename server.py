@@ -6,11 +6,13 @@ def accept_connection(sock):
     conn, addr = sock.accept()
     print(f"Accepting connection from {addr}")
     with conn:
+        conn.sendall(b'secure_code')
         while True:
             data = conn.recv(1024)
             if not data:
                 break
-            print(data)
+            if data == b'down_list':
+                conn.sendall(b'a.txt, b.mp4')
         conn.close()
 
 
