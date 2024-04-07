@@ -1,0 +1,46 @@
+Title: Peer-to-Peer File Sharing
+Team Members:
+- Joey Maffiola
+- Nelson Cowan
+- Adam Kessler
+
+Project Description:
+The project will be a simple (and hopefully efficient) P2P file sharing program. The goal is to allow users to find, share, and download files amongst peers without relying on a centralized server.
+
+Minimum Viable Product (MVP): 
+- Share files between two or more users
+- File Chunking / Parallel Downloads
+- Implement a file sharing protocol
+- Bandwidth Throttling
+- Download percentage / progress bar
+
+Stretch Goals: 
+- File Size Limit
+- File Integrity Checking
+- Peer Discovery Mechanism
+- File Discovery Mechanism
+- Fractional Bandwidth Splitting
+- Folder / directory sharing
+- File Encryption
+- Anonymity
+
+Network Architecture and Specifications:
+- Architecture: P2P
+- Protocol(s) Used: TCP
+- Data Protection Measures: End-to-End encryption
+- Multi-threading
+
+User Stories:
+1. As a file sharer, I want to be able to go online such that other users can download the files I select.
+2. As a file sharer, I want to allow people to download my files while also being able to use my network for other purposes.
+3. As a file downloader, I want to be able to access files on users' systems that they have made available.
+      
+Deliverables: 
+- Source code for send-receive architecture 
+- Documentation for all methods, classes, etc
+- Documentation of sender and receiver instructions and sender receiver guidelines
+- Working demo of P2P file sharing in action
+- If a central searching server is made, a working demo of such a server.
+
+Final Notes:
+As a user of P2P file sharing when I was a teen, I have always wondered how it worked. How can multiple people "seed" while I download one file from multiple sources? I'm finally going to find out with this project! I believe the challenge in this project will be handling users' data safely. Installing some form of encryption, let alone End-to-end encryption should be a challenge. This will be my first foray into networking and multi-threading, so that should be exciting. 
