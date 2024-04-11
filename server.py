@@ -13,8 +13,8 @@ def accept_connection(sock):
                 break
             if data == b'down_list':
                 conn.sendall(b'a.txt, b.mp4')
-        conn.close()
-
+            if data == b'close_connection':
+                conn.close()
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

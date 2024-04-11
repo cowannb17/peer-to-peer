@@ -9,43 +9,72 @@ frame = tk.Frame(window)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+downloads = [] # Each download is a dictionary of the filename and a boolean value of whether the user wants to download the file aka "checked"
+
+def fetch_downloads():
+    sock.send(b'down_list')
+    data = sock.recv(1024)
+    data = data.decode()
+
+    for filename in data.split(", "):
+        downloads.append( {"filename": filename, "checked": tk.BooleanVar()} ) # Creation of download dictionary
+    
+    print("Downloads Fetched")
+
+
 def initialize_connection():
     try:
         sock.connect(('127.0.0.1', 12756))
         data = sock.recv(1024)
         if data == b'secure_code':
             print("Good to Go")
+            fetch_downloads()
             return True
     except:
         sock.close()
         return False
-    sock.close()
+    #sock.close()
     return False
 
+
 def clearFrame():
+    print("Clear")
     for widget in frame.winfo_children():
         widget.destroy()
 
+def request_downloads():
+    sort_by_checked = sorted(downloads, key=lambda file: file["checked"].get(), reverse=True)
+    checked_downloads = []
+    for file in sort_by_checked:
+        if file["checked"].get() == False:
+            break
+        checked_downloads.append(file)
+
+    print(checked_downloads)
+    if (len(checked_downloads) == 0):
+        return
+    
+    # send server the list files you want to download
+
+
 def offered_files_frame():
-    sock.send(b'down_list')
-    data = sock.recv(1024)
-    data = data.decode()
-    print(data)
     window.title('Peer Client: Offered Files')
-    download_list = tk.Frame(frame)
-    download_checked = []
-    for filename in data.split(', '):
-        download_checked.append(tk.BooleanVar())
-        download_checked[-1].set(False)
-        tk.Checkbutton(frame, text=filename, variable=download_checked[-1]).pack()
+
     tk.Label(frame, text='Download Section').pack()
+    download_list = tk.Frame(frame)
+    for download in downloads:
+        tk.Checkbutton(download_list, text=download["filename"], variable=download["checked"]).pack()
     download_list.pack(side="top", fill="x")
-    tk.Button(frame, text='Download').pack()
+    
+    tk.Button(frame, text='Download', command=request_downloads).pack()
+    tk.Button(frame, text='Refresh', command=lambda:[fetch_downloads(), clearFrame(), offered_files_frame()]).pack()
+
 
 def host_files_frame():
     window.title('Peer Client: File Hosting')
     tk.Label(frame, text='Hosting Section').pack()
     tk.Button(frame, text='Host the File').pack()
+
 
 def settings_frame():
     window.title('Peer Client: Settings')
@@ -67,6 +96,7 @@ def settings_frame():
 
     tk.Button(options, text='Apply Settings').grid(sticky = tk.W+tk.E, row=3, column=0, columnspan=3)
 
+
 def root_window(connected):
     window.title('Peer Client')
     header = tk.Frame(window)
@@ -79,6 +109,7 @@ def root_window(connected):
          welcome_text = 'Something went wrong when conncting to the server! Try again'      
     tk.Label(frame, text=welcome_text).pack()
     return window
+
 
 init = initialize_connection()
 w = root_window(init)
