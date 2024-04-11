@@ -27,7 +27,8 @@ def initialize_connection():
         sock.connect(('127.0.0.1', 12756))
         data = sock.recv(1024)
         if data == b'secure_code':
-            print("Good to Go")
+            #sock.send(b'UUID: abcdef')
+            #sock.send(b'first time user')
             fetch_downloads()
             return True
     except:

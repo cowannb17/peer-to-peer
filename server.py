@@ -7,6 +7,16 @@ def accept_connection(sock):
     print(f"Accepting connection from {addr}")
     with conn:
         conn.sendall(b'secure_code')
+        uuid_data = conn.recv(1024)
+        if not uuid_data:
+            conn.close()
+            return
+        if b'UUID: ' not in uuid_data and b'first time user' not in uuid_data:
+            conn.close()
+            return
+        if b'first time user' in uuid_data:
+            print("First time user")
+            # Grant UUID to connector and create user
         while True:
             data = conn.recv(1024)
             if not data:
