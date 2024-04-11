@@ -3,7 +3,7 @@ import socket
 import threading
 
 def accept_connection(sock):
-    conn, addr = sock.accept()
+    conn, addr = sock.accept() # conn = socket, addr = Ip address
     print(f"Accepting connection from {addr}")
     with conn:
         conn.sendall(b'secure_code')
