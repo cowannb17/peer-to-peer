@@ -19,6 +19,7 @@ def accept_connection(sock):
         
         if b'first time user' in uuid_data:
             print("First time user")
+            conn.send(b'abc123')
             # Grant UUID to connector and create user
         
         if b'UUID: ' in uuid_data:
@@ -32,6 +33,7 @@ def accept_connection(sock):
                 conn.sendall(b'a.txt, b.mp4')
             if data == b'close_connection':
                 conn.close()
+                break
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

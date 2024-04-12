@@ -60,21 +60,25 @@ def connect_to_server():
             verification_data = sock.recv(1024)
             verification = decode_message(verification_data)
             if "verified" not in verification:
-                sock.close()
-                return False
+                print("Unverified")
+                #sock.close()
+                #return False
         
         return True
-    except:
+    except Exception as e:
+        print(e)
         sock.close()
         return False
 
 # Fetch downloads list from the server 
 def fetch_downloads(*args):
     # If the socket is not connected, opens a connection to the server again
-    if len(args) > 0 and args[0] != "socket connected":
+    if len(args) == 0 or args[0] != "socket connected":
+        global sock
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if not connect_to_server():
             return False
-    
+
     # Encodes and sends the message to request the downloads list
     message = encode_message("down_list")
     sock.send(message)
@@ -83,30 +87,31 @@ def fetch_downloads(*args):
     download_data = sock.recv(1024)
     downloads_list = decode_message(download_data)
 
-    # resets downloads list
-    downloads = []
     # Creates a dictionary of lists of download files and checkbox boolean variables to associate a file with a checkbox later on in the downloads GUI
     for filename in downloads_list.split(", "):
         downloads.append( {"filename": filename, "checked": tk.BooleanVar()} ) # Creation of download dictionary
     
     print("Downloads Fetched")
-    sock.detach() # Allows for use of the socket again
+    sock.send(b'close_connection')
+    sock.detach()
     return True
+
 
 # Runs on program startup, connects to server and requests downloads, returns False if server connection failed, True if everything went well
 def initialize_connection():
     if connect_to_server():
-        fetch_downloads()
+        fetch_downloads("socket connected")
         return True
     else:
         sock.close()
         return False
 
+
 # Clears Tk window, needs to be run every time the window is changed
 def clearFrame():
-    print("Clear")
     for widget in frame.winfo_children():
         widget.destroy()
+
 
 # Method to request all checked downloads from the server, grabs the list of downloads and sends the list of checked to the server
 def request_downloads():
@@ -128,6 +133,17 @@ def request_downloads():
     
     # send server the list files you want to download
 
+
+# Refreshes downloads list
+def refresh_downloads():
+    clearFrame()
+    # resets downloads list
+    global downloads
+    downloads = []
+    fetch_downloads()
+    offered_files_frame()
+
+
 # Static frame setup of the file download frame, called every time the "See Downloadable Files" button is clicked
 def offered_files_frame():
     # Changes window title
@@ -138,16 +154,14 @@ def offered_files_frame():
     
     # Creates the downloads list section as a new frame, 
     download_list = tk.Frame(frame)
-    i = 0
     for download in downloads:
-        tk.Checkbutton(download_list, text=download["filename"], variable=download["checked"]).grid(row=i // 3, column=i % 3) # perform floor integer divison
-        i += 1
+        tk.Checkbutton(download_list, text=download["filename"], variable=download["checked"]).pack()
     # Add download list to the frame
     download_list.pack(side="top", fill="x")
     
     # Add download and refresh buttons to the frame, refresh button
     tk.Button(frame, text='Download', command=request_downloads).pack()
-    tk.Button(frame, text='Refresh', command=lambda:[fetch_downloads(), clearFrame(), offered_files_frame()]).pack()
+    tk.Button(frame, text='Refresh', command=refresh_downloads).pack()
 
 
 # TODO: add file drag and drop or other selection style
@@ -156,6 +170,7 @@ def host_files_frame():
     window.title('Peer Client: File Hosting')
     tk.Label(frame, text='Hosting Section').pack()
     tk.Button(frame, text='Host the File').pack()
+
 
 # TODO: add saving of options
 # Static frame setup of settings frame
@@ -178,6 +193,7 @@ def settings_frame():
     tk.Label(options, text='Mbps').grid(sticky=tk.W, row=1, column=2)
 
     tk.Button(options, text='Apply Settings').grid(sticky = tk.W+tk.E, row=3, column=0, columnspan=3)
+
 
 # Static frame setup of root window, what the client first sees on program startup
 def root_window(connected):
