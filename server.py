@@ -1,9 +1,11 @@
 # Code for server client of peer-to-peer system
+import msvcrt
 import socket
 import threading
 
-def accept_connection(sock):
-    conn, addr = sock.accept() # conn = socket, addr = Ip address
+max_threads = 3
+
+def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
     with conn:
         conn.sendall(b'secure_code')
@@ -35,6 +37,16 @@ def accept_connection(sock):
                 conn.close()
                 break
 
+
+# Allows for closing of socket while it is still listening, waits for 'Ctrl-C' press then closes socket
+def await_keypress(sock):
+    while True:
+        if msvcrt.getch() == b'\x03': # If 'Ctrl-C' is pressed
+            global open
+            open = False
+            sock.close()
+            break
+
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -42,4 +54,25 @@ print("Opening Server at 127.0.0.1 on port 12756")
 sock.bind(('127.0.0.1', 12756))
 sock.listen()
 
-accept_connection(sock)
+global open
+open = True
+
+# Opens a thread which waits for 'Control-C' to be pressed, then closes the socket.
+# A thread is needed for this because sock.accept() is blocking
+keyboard_interrupt_thread = threading.Thread(target=await_keypress, args=(sock,))
+keyboard_interrupt_thread.daemon = True
+keyboard_interrupt_thread.start()
+
+while open:
+    conn, addr = sock.accept() # conn = socket, addr = Ip address
+    print(f"Incoming connection from {addr}")
+    
+    # If theads are at max, send a response "Connection Refused"
+    if threading.active_count() > max_threads: # Active count includes main thread, so must use > rather than >=
+        conn.send(b'Connection Refused')
+        conn.close()
+        continue
+
+    # Creates a thread to deal with the incomic connection
+    thread = threading.Thread(target=accept_connection, args=(conn, addr,))
+    thread.start()

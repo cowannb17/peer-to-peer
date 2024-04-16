@@ -103,7 +103,6 @@ def initialize_connection():
         fetch_downloads("socket connected")
         return True
     else:
-        sock.close()
         return False
 
 
@@ -156,6 +155,10 @@ def offered_files_frame():
     download_list = tk.Frame(frame)
     for download in downloads:
         tk.Checkbutton(download_list, text=download["filename"], variable=download["checked"]).pack()
+    
+    if len(downloads) == 0:
+        tk.Label(download_list, text="No Downloads were able to be found\nPerhaps there was a connection error.\nTry Again?").pack()
+    
     # Add download list to the frame
     download_list.pack(side="top", fill="x")
     
