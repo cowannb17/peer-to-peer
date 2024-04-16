@@ -8,31 +8,48 @@ max_threads = 3
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
     with conn:
+        # Sends data and recieves the uuid data from the client which can either be "first time user" or the uuid
         conn.sendall(b'secure_code')
         uuid_data = conn.recv(1024)
         
+        # If the return message is blank end the connection
         if not uuid_data:
             conn.close()
             return
         
+        # Checks to see if the user is either a first time user or that the uuid is sent with correct formatting
         if b'UUID: ' not in uuid_data and b'first time user' not in uuid_data:
             conn.close()
             return
         
+        active_user = ""
+
+        # If the user is a first time user, we create and send them their uuid and proceed with the resultant as the active user
         if b'first time user' in uuid_data:
             print("First time user")
-            conn.send(b'abc123')
             # Grant UUID to connector and create user
+            uuid = "abc123"
+            conn.send(uuid.encode()) # .encode creates a byte string, which is then sent
+            active_user = uuid
         
         if b'UUID: ' in uuid_data:
             conn.send(b'verified')
+            uuid = uuid_data[6:] # Removes "UUID: " part of string
+            active_user = uuid
 
+        # After opening sequence is finished, listens for many different types of incoming data
         while True:
             data = conn.recv(1024)
+
+            # If there is no data in the message, end the connection
             if not data:
                 break
+            
+            # If the incoming data is "down_list" send the downloads list to the client
             if data == b'down_list':
                 conn.sendall(b'a.txt, b.mp4')
+
+            # If the incoming data is "close_connection" end the connection to the client
             if data == b'close_connection':
                 conn.close()
                 break
@@ -73,6 +90,6 @@ while open:
         conn.close()
         continue
 
-    # Creates a thread to deal with the incomic connection
+    # Creates a thread to deal with the incoming connection
     thread = threading.Thread(target=accept_connection, args=(conn, addr,))
     thread.start()
