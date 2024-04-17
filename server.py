@@ -49,6 +49,13 @@ def accept_connection(conn, addr):
             if data == b'down_list':
                 conn.sendall(b'a.txt, b.mp4')
 
+            # If the incoming data is "request_downloads" get the list of downloads requested and send the connection info of the files to the user
+            if data == b'request_downloads':
+                download_data = conn.recv(1024)
+                print(download_data)
+                # Send all users that offer the requested file to the user
+                conn.sendall(b'A user')
+
             # If the incoming data is "close_connection" end the connection to the client
             if data == b'close_connection':
                 conn.close()

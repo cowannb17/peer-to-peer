@@ -120,17 +120,36 @@ def request_downloads():
 
     # Adds checked downloads to list until it runs into the first unchecked download
     # at which point all checked downloads have been added to the list
-    checked_downloads = []
+    checked_downloads = ""
     for file in sort_by_checked:
         if file["checked"].get() == False:
             break
-        checked_downloads.append(file)
+        checked_downloads += file["filename"] + ","
 
     # Checks to see if no downloads are checked at all
     if (len(checked_downloads) == 0):
         return
     
+    # Remove trailing commna
+    checked_downloads = checked_downloads[:-1]
+
+    # Reconnect to sever
+    global sock
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if not connect_to_server():
+        return False
+    
     # send server the list files you want to download
+    message = encode_message("request_downloads")
+    sock.send(message)
+    sock.send(encode_message(checked_downloads))
+
+    data = sock.recv(1024)
+    if not data:
+        return
+    print(data)
+
+
 
 
 # Refreshes downloads list
