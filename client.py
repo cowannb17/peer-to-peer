@@ -153,12 +153,19 @@ def offered_files_frame():
     
     # Creates the downloads list section as a new frame, 
     download_list = tk.Frame(frame)
+    i = 0
     for download in downloads:
-        tk.Checkbutton(download_list, text=download["filename"], variable=download["checked"]).pack()
+        tk.Checkbutton(download_list, text=download["filename"], variable=download["checked"]).grid(row=(i//3), column=(i % 3))
+        i += 1
     
     if len(downloads) == 0:
         tk.Label(download_list, text="No Downloads were able to be found\nPerhaps there was a connection error.\nTry Again?").pack()
     
+    # Packs the downloads list grid, uses three columns maximum
+    for x in range(0, len(downloads)):
+        if x >= 3:
+            break
+        download_list.grid_columnconfigure(x, weight=1)
     # Add download list to the frame
     download_list.pack(side="top", fill="x")
     
