@@ -144,6 +144,7 @@ def request_downloads():
     sock.send(message)
     sock.send(encode_message(checked_downloads))
 
+    # Recieves list of all users who will host the requested file(s), this data should be instantly sent into the peer class
     data = sock.recv(1024)
     if not data:
         return
