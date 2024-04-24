@@ -3,12 +3,17 @@ import threading
 from user import user as User
 
 class peer:
-    def __init__(self, user : User, isHosting, requested_files, file_hosts):
+    def __init__(self, user : User):
+        self.user = user
+
+    def configure_hosting(self, files_to_host):
+        self.hosted_files = files_to_host
+
+
+    def configure_downloads(self, requested_files, file_hosts):
         self.requestedFiles = requested_files
         self.hosts = file_hosts
         self.downloads = []
-        self.hosting = isHosting
-
 
     # Given a user and file (or list of files) connects to the user and requests the files. If the user has the files, start the download, if not do nothing
     def request_from_user(self, user : User, file_id):

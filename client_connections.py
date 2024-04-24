@@ -132,3 +132,24 @@ class client:
         self.sock.send(b'close_connection')
         self.sock.detach()
         return self.decode_message(data)
+    
+    
+    def notify_of_hosting(self, files_to_host):
+        # Get the actual name of each file
+        file_names = [file.split("/")[-1] for file in files_to_host]
+        #one liner to add double quotes around each file name and put them in a single string
+        files = ','.join(['"' + file_name + '"' for file_name in file_names])
+        message = self.encode_message(files)
+        
+        # Connects to server
+        status = self.__connect_to_server()
+        if not status:
+            return
+
+        # Sends server list of files client wants to host
+        self.sock.send(self.encode_message("host_files"))        
+        self.sock.send(message)
+        
+        # Disconnects from server
+        self.sock.send(b'close_connection')
+        self.sock.detach()

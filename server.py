@@ -49,6 +49,7 @@ def accept_connection(conn, addr):
             if data == b'down_list':
                 conn.sendall(b'a.txt, b.mp4')
 
+            # If the incoming data is "connection_data" send back the ip that the user is using
             if data == b'connection_data':
                 ip = f"{addr[0]}"
                 conn.sendall(ip.encode())
@@ -72,11 +73,19 @@ def accept_connection(conn, addr):
                 packet = "[(\'1.2.3.4\', 12345)],[(\'5.6.7.8\', 61234), (\'9.0.1.2\', 56789)]"
                 conn.send(packet.encode())
 
+            # If the incoming data is "host_files" get the list of files the user wants to host
+            if data == b'host_files':
+                file_string = conn.recv(1024)
+                # add files to the database
+                print(file_string)
+
             # If the incoming data is "close_connection" end the connection to the client
             if data == b'close_connection':
                 print(f"Closing connection from {addr}")
                 conn.close()
                 break
+
+            print(data)
 
 
 # Allows for closing of socket while it is still listening, waits for 'Ctrl-C' press then closes socket

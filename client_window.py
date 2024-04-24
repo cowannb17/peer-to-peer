@@ -1,6 +1,7 @@
 import ast
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 from client_connections import client as Client
 from peer import peer as Peer
 
@@ -43,7 +44,8 @@ def start_downloads(file_list):
     clearFrame()
     
     global peer
-    peer = Peer(client.user, False, files, selection)
+    peer = Peer(client.user)
+
 
 def select_location_frame(file_list):
     # Changes window title
@@ -160,12 +162,65 @@ def offered_files_frame():
     tk.Button(frame, text='Refresh', command=refresh_downloads).pack()
 
 
+def host_files(hosted_files_list):
+    peer = Peer(client.user)
+
+    # Notifies the server that we are hosting the files, then sets up peer for hosting filse
+    client.notify_of_hosting(hosted_files_list)
+    peer.configure_hosting(hosted_files_list)
+
+# Removes the file to host from the frame
+def remove_file(file_frame, hosted_files, label, button):
+    # Get the index of the file and remove it from the list to host
+    index = hosted_files.index(label['text'])
+    hosted_files.pop(index)
+    
+    # Remove the label and button from the frame
+    label.grid_forget()
+    label.destroy()
+    button.grid_forget()
+    button.destroy()
+
+    # Move all subsequent labels and buttons up by one row
+    widget_list = file_frame.winfo_children()
+    for i in range(index * 2, len(widget_list), 2):
+        # Get current row - 1
+        row = widget_list[i].grid_info()['row'] - 1
+        widget_list[i].grid(column=0, row=row)
+        widget_list[i + 1].grid(column=1, row=row)
+
+
+
+def browse_file(file_frame, hosted_files, warning):
+    # Opens a file browser to 
+    file_path = filedialog.askopenfilename()
+
+    if file_path:
+        if file_path in hosted_files:
+            warning['text'] = f"File {file_path} has already been selected"
+            warning.pack()
+            return
+        hosted_files.append(file_path)
+        label = tk.Label(file_frame, text=file_path)
+        label.grid(column=0, row=len(hosted_files))
+        button = tk.Button(file_frame, text="X", command=lambda:remove_file(file_frame, hosted_files, label, button))
+        button.grid(column=1, row=len(hosted_files))
+        warning['text'] = ""
+        warning.pack_forget()
+
 # TODO: add file drag and drop or other selection style
 #       add method to send files from computer to server
 def host_files_frame():
     window.title('Peer Client: File Hosting')
+    # Creates label for hosting section
     tk.Label(frame, text='Hosting Section').pack()
-    tk.Button(frame, text='Host the File').pack()
+    
+    files_host_frame = tk.Frame(frame)
+    files_host_frame.pack()
+    hosted_files = []
+    warning = tk.Label(frame)
+    tk.Button(frame, text="Browse", command=lambda: browse_file(files_host_frame, hosted_files, warning)).pack()
+    tk.Button(frame, text='Host the File', command=lambda:[clearFrame(), host_files(hosted_files)]).pack()
 
 
 # TODO: add saving of options
