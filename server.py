@@ -49,15 +49,32 @@ def accept_connection(conn, addr):
             if data == b'down_list':
                 conn.sendall(b'a.txt, b.mp4')
 
+            if data == b'connection_data':
+                ip = f"{addr[0]}"
+                conn.sendall(ip.encode())
+
             # If the incoming data is "request_downloads" get the list of downloads requested and send the connection info of the files to the user
             if data == b'request_downloads':
                 download_data = conn.recv(1024)
                 print(download_data)
                 # Send all users that offer the requested file to the user
-                conn.sendall(b'A user')
+                # Send the data as ('127.0.0.1', 12345) for each user
+                # Each file will have its own list as well e.g.
+                # [('127.0.0.1', 12345)],[('127.0.0.1', 12345),('127.0.0.1', 12345)]
+                # File 1 has only a single host, file 2 has 2 hosts.
+                packet = ''
+
+                download_data = download_data.decode("utf-8")
+                for i in range(0, len(download_data.split(","))):
+                    packet += '[(\'127.0.0.1\', 12756)],'
+
+                packet = packet[:-1]
+                packet = "[(\'1.2.3.4\', 12345)],[(\'5.6.7.8\', 61234), (\'9.0.1.2\', 56789)]"
+                conn.send(packet.encode())
 
             # If the incoming data is "close_connection" end the connection to the client
             if data == b'close_connection':
+                print(f"Closing connection from {addr}")
                 conn.close()
                 break
 
