@@ -1,9 +1,8 @@
 import ast
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
-from client_connections import client as Client
 from peer import peer as Peer
+from tkinter import ttk, filedialog
+from client_connections import client as Client
 
 # creates client class which handles connections between server and client
 client = Client()
@@ -163,6 +162,8 @@ def offered_files_frame():
 
 
 def host_files(hosted_files_list):
+    if len(hosted_files_list) == 0:
+        return
     peer = Peer(client.user)
 
     # Notifies the server that we are hosting the files, then sets up peer for hosting filse
