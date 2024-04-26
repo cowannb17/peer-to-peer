@@ -1,8 +1,8 @@
 # Code for server client of peer-to-peer system
-import uuid as UUID
 import msvcrt
 import socket
 import threading
+import uuid as UUID
 
 max_threads = 3
 
