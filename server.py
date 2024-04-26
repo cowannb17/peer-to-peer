@@ -31,8 +31,8 @@ def accept_connection(conn, addr):
             # Grant UUID to connector and create user
             uuid = uuid.uuid5()
             uuid_str = str(uuid)
-            conn.send(uuid.encode()) # .encode creates a byte string, which is then sent
-            active_user = uuid
+            conn.send(uuid_str.encode()) # .encode creates a byte string, which is then sent
+            active_user = uuid_str
         
         if b'UUID: ' in uuid_data:
             conn.send(b'verified')
