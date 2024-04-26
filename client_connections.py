@@ -44,7 +44,7 @@ class client:
             user_id = self.load_user_id()
             if user_id is None:
                 # Sends message of no user id
-                message = self.encode_message("first time user")
+                message = self.encode_message("first time user") #Encodes as byte string
                 self.sock.send(message)
 
                 # Recieves user ID and saves it to the keyring
