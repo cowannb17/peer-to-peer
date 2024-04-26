@@ -1,4 +1,5 @@
 # Code for server client of peer-to-peer system
+import uuid
 import msvcrt
 import socket
 import threading
@@ -28,7 +29,8 @@ def accept_connection(conn, addr):
         if b'first time user' in uuid_data:
             print("First time user")
             # Grant UUID to connector and create user
-            uuid = "abc123"
+            uuid = uuid.uuid5()
+            uuid_str = str(uuid)
             conn.send(uuid.encode()) # .encode creates a byte string, which is then sent
             active_user = uuid
         
@@ -47,7 +49,7 @@ def accept_connection(conn, addr):
             
             # If the incoming data is "down_list" send the downloads list to the client
             if data == b'down_list':
-                conn.sendall(b'a.txt, b.mp4')
+                conn.sendall(b'a.txt,b.mp4')
 
             # If the incoming data is "connection_data" send back the ip that the user is using
             if data == b'connection_data':
