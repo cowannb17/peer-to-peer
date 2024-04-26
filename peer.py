@@ -8,6 +8,7 @@ class peer:
 
     def configure_hosting(self, files_to_host):
         self.hosted_files = files_to_host
+        self.hosted_filenames = [file.split("/")[-1] for file in files_to_host]
 
 
     def configure_downloads(self, requested_files, file_hosts):
@@ -33,15 +34,17 @@ class peer:
         sock.send(file_id)
 
     # Sends the file to the peer who has requested it
-    def send_file(self, conn, addr, file_id):
+    def send_file(self, conn, addr):
         print(f"Accepting connection from {addr}")
         with conn:
-            download_data = conn.recv(1024)
-            if not download_data:
+            data = conn.recv(1024)
+            if not data:
                 conn.close()
                 return
             
-            if download_data != b'get_download_data':
+
+
+            if data != b'get_download_data':
                 conn.close()
                 return
             
@@ -49,10 +52,8 @@ class peer:
             return
             
 
-    # Will act as server to hsot only the singular file, multiple threads for each file and each thread will create threads for incoming connections
-    def host_download(self, file_id):
-        # Parse file into global memory
-        
+    # Will act as server to host the files 
+    def host_downloads(self):
         # Start socket for hosting
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(('127.0.0.1', 12756))
@@ -68,8 +69,16 @@ class peer:
             # - Send data
             # - Send "Complete" message once all data has been sent
             # - Close connection and thread
-            thread = threading.Thread(target=self.send_file, args=(conn, addr, file_id,))
+            thread = threading.Thread(target=self.send_file, args=(conn, addr,))
             thread.start()
             
             
         return None
+
+    # Will encode the message with whatever encoding we decide on, currently only turns a string into a byte string
+    def encode_message(self, message):
+        return message.encode()
+
+    # Will decode the message with whatever encoding we decide on, currently turns byte string into string
+    def decode_message(self, message):
+        return message.decode("utf-8")
