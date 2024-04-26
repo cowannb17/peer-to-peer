@@ -1,5 +1,5 @@
 # Code for server client of peer-to-peer system
-import uuid
+import uuid as UUID
 import msvcrt
 import socket
 import threading
@@ -29,7 +29,7 @@ def accept_connection(conn, addr):
         if b'first time user' in uuid_data:
             print("First time user")
             # Grant UUID to connector and create user
-            uuid = uuid.uuid5()
+            uuid = UUID.uuid5()
             uuid_str = str(uuid)
             conn.send(uuid_str.encode()) # .encode creates a byte string, which is then sent
             active_user = uuid_str
