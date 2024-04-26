@@ -1,117 +1,84 @@
-# Code for peer client of peer-to-peer system
 import socket
-import tkinter as tk
+import threading
+from user import user as User
 
-window = tk.Tk()
-window.geometry("400x150")
+class peer:
+    def __init__(self, user : User):
+        self.user = user
 
-frame = tk.Frame(window)
-
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-downloads = [] # Each download is a dictionary of the filename and a boolean value of whether the user wants to download the file aka "checked"
-
-def fetch_downloads():
-    sock.send(b'down_list')
-    data = sock.recv(1024)
-    data = data.decode()
-
-    for filename in data.split(", "):
-        downloads.append( {"filename": filename, "checked": tk.BooleanVar()} ) # Creation of download dictionary
-    
-    print("Downloads Fetched")
+    def configure_hosting(self, files_to_host):
+        self.hosted_files = files_to_host
+        self.hosted_filenames = [file.split("/")[-1] for file in files_to_host]
 
 
-def initialize_connection():
-    try:
-        sock.connect(('127.0.0.1', 12756))
-        data = sock.recv(1024)
-        if data == b'secure_code':
-            print("Good to Go")
-            fetch_downloads()
-            return True
-    except:
-        sock.close()
-        return False
-    #sock.close()
-    return False
+    def configure_downloads(self, requested_files, file_hosts):
+        self.requestedFiles = requested_files
+        self.hosts = file_hosts
+        self.downloads = []
+
+    # Given a user and file (or list of files) connects to the user and requests the files. If the user has the files, start the download, if not do nothing
+    def request_from_user(self, user : User, file_id):
+        if type(file_id) is list:
+            for file in file_id:
+                self.request_from_user(user, file)
+            return None
+        
+        return None
 
 
-def clearFrame():
-    print("Clear")
-    for widget in frame.winfo_children():
-        widget.destroy()
+    # Starts the download by requesting the download data of the file (file size in bytes)
+    def start_download(self, user : User, file_id):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((user.userIP, 12756))
+        sock.send(b'get_download_data')
+        sock.send(file_id)
 
-def request_downloads():
-    sort_by_checked = sorted(downloads, key=lambda file: file["checked"].get(), reverse=True)
-    checked_downloads = []
-    for file in sort_by_checked:
-        if file["checked"].get() == False:
-            break
-        checked_downloads.append(file)
-
-    print(checked_downloads)
-    if (len(checked_downloads) == 0):
-        return
-    
-    # send server the list files you want to download
+    # Sends the file to the peer who has requested it
+    def send_file(self, conn, addr):
+        print(f"Accepting connection from {addr}")
+        with conn:
+            data = conn.recv(1024)
+            if not data:
+                conn.close()
+                return
+            
 
 
-def offered_files_frame():
-    window.title('Peer Client: Offered Files')
+            if data != b'get_download_data':
+                conn.close()
+                return
+            
+            # Send file and complete message once done sending
+            return
+            
 
-    tk.Label(frame, text='Download Section').pack()
-    download_list = tk.Frame(frame)
-    for download in downloads:
-        tk.Checkbutton(download_list, text=download["filename"], variable=download["checked"]).pack()
-    download_list.pack(side="top", fill="x")
-    
-    tk.Button(frame, text='Download', command=request_downloads).pack()
-    tk.Button(frame, text='Refresh', command=lambda:[fetch_downloads(), clearFrame(), offered_files_frame()]).pack()
+    # Will act as server to host the files 
+    def host_downloads(self):
+        # Start socket for hosting
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind(('127.0.0.1', 12756))
+        sock.listen()
 
+        global open
+        open = True
+        # Start while loop for hosting
+        while open:
+            conn, addr = sock.accept() # conn = socket, addr = Ip address
 
-def host_files_frame():
-    window.title('Peer Client: File Hosting')
-    tk.Label(frame, text='Hosting Section').pack()
-    tk.Button(frame, text='Host the File').pack()
+            # If new request, make a new thread and being sending the data
+            # - Send data
+            # - Send "Complete" message once all data has been sent
+            # - Close connection and thread
+            thread = threading.Thread(target=self.send_file, args=(conn, addr,))
+            thread.start()
+            
+            
+        return None
 
+    # Will encode the message with whatever encoding we decide on, currently only turns a string into a byte string
+    def encode_message(self, message):
+        return message.encode()
 
-def settings_frame():
-    window.title('Peer Client: Settings')
-    tk.Label(frame, text='Settings Section').pack()
-    options = tk.Frame(frame)
-    options.pack(side="top", fill="x", padx=40)
-    
-    tk.Label(options, text='Bandwidth used for Hosting: ', justify=tk.LEFT).grid(sticky=tk.E, row=0, column=0)
-    up_bandwidth = tk.Entry(options, width=8)
-    up_bandwidth.insert(0, 50)
-    up_bandwidth.grid(sticky = tk.W, row = 0, column = 1)
-    tk.Label(options, text='Mbps').grid(sticky=tk.W, row=0, column=2)
-    
-    tk.Label(options, text='Bandwidth used for Downloading: ', justify=tk.LEFT).grid(sticky=tk.E, row=1, column=0)
-    down_bandwidth = tk.Entry(options, width=8)
-    down_bandwidth.insert(0, 50)
-    down_bandwidth.grid(sticky=tk.W, row=1, column=1)
-    tk.Label(options, text='Mbps').grid(sticky=tk.W, row=1, column=2)
-
-    tk.Button(options, text='Apply Settings').grid(sticky = tk.W+tk.E, row=3, column=0, columnspan=3)
-
-
-def root_window(connected):
-    window.title('Peer Client')
-    header = tk.Frame(window)
-    header.pack(side="top", fill="x")
-    tk.Button(header, text='See Downloadable Files', command=lambda:[clearFrame(), offered_files_frame()]).pack(side="left", expand="True")
-    tk.Button(header, text='Host a file', command=lambda:[clearFrame(), host_files_frame()]).pack(side="left", expand="True")
-    tk.Button(header, text='Settings', command=lambda:[clearFrame(), settings_frame()]).pack(side="left", expand="True")
-    welcome_text = 'Welcome to the peer-to-peer file sharing application!'
-    if not connected:
-         welcome_text = 'Something went wrong when conncting to the server! Try again'      
-    tk.Label(frame, text=welcome_text).pack()
-    return window
-
-
-init = initialize_connection()
-w = root_window(init)
-frame.pack(side="top", expand=True, fill="both")
-w.mainloop()
+    # Will decode the message with whatever encoding we decide on, currently turns byte string into string
+    def decode_message(self, message):
+        return message.decode("utf-8")
