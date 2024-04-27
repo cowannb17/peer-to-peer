@@ -41,9 +41,4 @@ class database:
         except Exception:
             print("error deleting data:" )
     
-    def download_file(self, tableName, columns):
-        try:
-            cursor.execute(f"select {columns} from {tableName}")
-            return cursor.fetchall() 
-        except Exception:
-            print("error selecting data:" )
+   

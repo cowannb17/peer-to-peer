@@ -103,14 +103,7 @@ def accept_connection(conn, addr):
                 for file in file_string.split(","):
                     db.insert_data("files", f"'{file}', '{active_user}'")
 
-            # If the incoming data is "request_file" get the file name and send the file to the user
-            if data == b'request_file':
-                file_name = conn.recv(1024)
-                print(file_name)
-                # send file to user
-                conn.sendall(b'download_file')
-                
-                
+             
         
             # If the incoming data is "close_connection" end the connection to the client
             if data == b'close_connection':
