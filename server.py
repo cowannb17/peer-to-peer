@@ -3,10 +3,12 @@ import msvcrt
 import socket
 import threading
 import uuid as UUID
+import sqlite3
 
 import rsa
 
 max_threads = 3
+
 
 def checkKeys():
     # Check if the keys are already generated
@@ -27,6 +29,10 @@ def checkKeys():
 server_public_key, server_private_key = checkKeys()
 
 
+
+from database import database
+
+db = database()
 
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
