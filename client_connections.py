@@ -12,12 +12,16 @@ class client:
 
         self.save_RSA_pubkey(self.keyPair.get_public_key())
         self.save_RSA_privkey(self.keyPair.get_private_key())
+
+        
+
+        # Key exchange between client and server
         
         # Send public key to server
-        self.sock.send(self.keyPair.get_public_key())
+        self.sock.send(self.get_RSA_pubkey())
 
         # Recieve public key from server
-        self.serverPublicKey = self.sock.recv(1024)
+        self.save_server_RSA_pubkey(self.sock.recv(1024))
 
         # now the client has the server's public key, and the server has the client's public key
         # the client can now send the server a message encrypted with the server's public key
@@ -55,6 +59,14 @@ class client:
     # Gets private key from keyring
     def get_RSA_privkey(self):
         return keyring.get_password("p2p", "privkey")
+    
+    # Saves server public key to keyring
+    def save_server_RSA_pubkey(self, pubkey):
+        keyring.set_password("p2p", "server_pubkey", pubkey)
+
+    # Gets server public key from keyring
+    def get_server_RSA_pubkey(self):
+        return keyring.get_password("p2p", "server_pubkey")
 
     # Private Method:
     # Connects to server, returns True if connection was successful, False if there were issues
