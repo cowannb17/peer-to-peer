@@ -14,12 +14,8 @@ db = database()
 def get_uid():
     return str(UUID.uuid4())
 
-def verify_uuid(uuid):
-    try:
-        UUID.UUID(uuid)
-        return True
-    except ValueError:
-        return False
+def verify_user(uid):
+    return db.select_data("users", "uid")[0][0] == uid
 
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
