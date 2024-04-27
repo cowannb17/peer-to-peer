@@ -98,10 +98,10 @@ def accept_connection(conn, addr):
                 # add files to the database
                 print(file_string)
 
-           #add file to users host list
+                # add file to users host list
                 file_string = file_string.decode("utf-8")
-                for i in range(0, len(file_string.split(","))):
-                    db.insert_data("files", f"'{active_user}', '{file_string[i]}'")
+                for userlist in file_string.split(","):
+                    db.insert_data("available_files", f"{active_user}, {userlist}")
         
             # If the incoming data is "close_connection" end the connection to the client
             if data == b'close_connection':
