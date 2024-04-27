@@ -1,5 +1,7 @@
 import gc
 import socket
+
+import rsa
 from RSAKeyExchange import RSAKeyExchange
 import keyring
 import tkinter as tk
@@ -60,6 +62,18 @@ class client:
                 # and the server can decrypt it with its private key
             else:
                 self.sock.connect(('127.0.0.1', 12756))
+                encoded_userID = self.encode_message(self.load_user_id())
+                # Encrypt the message with the server's public key
+                encrypted_userID = rsa.encrypt(encoded_userID, self.get_server_RSA_pubkey())
+                self.sock.send(b'UUID')
+
+                msg = self.sock.recv(1024).decode('utf-8')
+                if msg == 'send_UUID':
+                    self.sock.send(encrypted_userID)
+                else:
+                    print("Error in UUID exchange")
+                    self.sock.close()
+                    return
 
         
 

@@ -12,17 +12,19 @@ def accept_connection(conn, addr):
         
         # Check if this is a first time user or a returning user
         msg = conn.recv(1024)
-        # if message is the clients public key, then the client is a first time user
-        if msg == b'public_key':
+        # if client is the requsting to send their public key , then the client is a first time user
+        if msg == b'public_key': #client wants to send public key
             # Send message to client requesting public key
             conn.sendall(b'send_public_key')
             # Recieve public key from client
-            client_pubkey = 
+            client_pubkey = conn.recv(1024).decode('utf-8')
             
             # send the server's public key to the client
             conn.sendall(b'server_pubkey')
 
-
+        # If the client is not a first time user, then the client is a returning user
+        # The client will send their UUID to the server encrypted with the server's public key
+        
 
 
 
