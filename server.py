@@ -42,7 +42,8 @@ def accept_connection(conn, addr):
             client_pubkey = conn.recv(1024).decode('utf-8')
             
             # send the server's public key to the client
-            conn.sendall(b'server_pubkey')
+            pubKeyString = f'{server_public_key}'
+            conn.sendall(pubKeyString.encode())
 
         # If the client is not a first time user, then the client is a returning user
         # The client will send their UUID to the server encrypted with the server's public key
