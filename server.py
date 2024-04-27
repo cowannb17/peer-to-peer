@@ -24,7 +24,7 @@ def checkKeys():
             file.write(public_key.save_pkcs1())
     return public_key, private_key
 
-checkKeys()
+server_public_key, server_private_key = checkKeys()
 
 
 
