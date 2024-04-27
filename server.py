@@ -102,6 +102,13 @@ def accept_connection(conn, addr):
                 file_string = file_string.decode("utf-8")
                 for file in file_string.split(","):
                     db.insert_data("files", f"'{file}', '{active_user}'")
+
+            # If the incoming data is "request_file" get the file name and send the file to the user
+            if data == b'request_file':
+                file_name = conn.recv(1024)
+                print(file_name)
+                # send file to user
+                conn.sendall(b'file_data')
                 
                 
         
