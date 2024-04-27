@@ -1,3 +1,4 @@
+import gc
 import socket
 from RSAKeyExchange import RSAKeyExchange
 import keyring
@@ -13,7 +14,8 @@ class client:
         self.save_RSA_pubkey(self.keyPair.get_public_key())
         self.save_RSA_privkey(self.keyPair.get_private_key())
 
-        
+        self.keyPair = None
+        gc.collect()
 
         # Key exchange between client and server
         
