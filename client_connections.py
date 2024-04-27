@@ -40,11 +40,8 @@ class client:
                 # Key exchange between client and server
                 self.sock.connect(('127.0.0.1', 12756))
                 # Encode the message and send it to the server
-                
-                # Send public key to server
                 self.sock.send(self.encode_message(self.get_RSA_pubkey()))
-
-                # Recieve public key from server
+                # Recieve public key and decode from server
                 self.save_server_RSA_pubkey(self.decode_message(self.sock.recv(1024)))
 
                 # now the client has the server's public key, and the server has the client's public key
