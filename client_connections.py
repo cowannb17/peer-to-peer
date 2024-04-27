@@ -9,13 +9,15 @@ class client:
     
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.keyPair = RSAKeyExchange()
-
-        self.save_RSA_pubkey(self.keyPair.get_public_key())
-        self.save_RSA_privkey(self.keyPair.get_private_key())
-        # Delete the keypair from memory to prevent it from being accessed by other programs
-        self.keyPair = None
-        gc.collect()
+        
+        if self.get_server_RSA_pubkey() is None:
+            self.keyPair = RSAKeyExchange()
+            
+            self.save_RSA_pubkey(self.keyPair.get_public_key())
+            self.save_RSA_privkey(self.keyPair.get_private_key())
+            # Delete the keypair from memory to prevent it from being accessed by other programs
+            self.keyPair = None
+            gc.collect()
 
         # Key exchange between client and server
         
