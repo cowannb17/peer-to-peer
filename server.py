@@ -10,6 +10,17 @@ max_threads = 3
 from database import database
 
 db = database()
+
+def get_uid():
+    return str(UUID.uuid4())
+
+def verify_uuid(uuid):
+    try:
+        UUID.UUID(uuid)
+        return True
+    except ValueError:
+        return False
+
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
     with conn:
