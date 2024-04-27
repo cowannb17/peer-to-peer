@@ -39,14 +39,27 @@ class client:
 
                 # Key exchange between client and server
                 self.sock.connect(('127.0.0.1', 12756))
-                # Encode the message and send it to the server
-                self.sock.send(self.encode_message(self.get_RSA_pubkey()))
-                # Recieve public key and decode from server
-                self.save_server_RSA_pubkey(self.decode_message(self.sock.recv(1024)))
+
+                # Let server know you want to send your public key
+                self.sock.send(self.encode_message("public_key"))
+
+                msg = self.sock.recv(1024)
+
+                if msg == b'send_public_key':
+                    # Encode clients public key and send it to the server
+                    self.sock.send(self.encode_message(self.get_RSA_pubkey()))
+                    # Recieve Server's public key and decode from server
+                    self.save_server_RSA_pubkey(self.decode_message(self.sock.recv(1024)))
+                else :
+                    print("Error in key exchange")
+                    self.sock.close()
+                    return
 
                 # now the client has the server's public key, and the server has the client's public key
                 # the client can now send the server a message encrypted with the server's public key
                 # and the server can decrypt it with its private key
+            else:
+                self.sock.connect(('127.0.0.1', 12756))
 
         
 

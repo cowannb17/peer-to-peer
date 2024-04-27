@@ -9,6 +9,23 @@ max_threads = 3
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
     with conn:
+        
+        # Check if this is a first time user or a returning user
+        msg = conn.recv(1024)
+        # if message is the clients public key, then the client is a first time user
+        if msg == b'public_key':
+            # Send message to client requesting public key
+            conn.sendall(b'send_public_key')
+            # Recieve public key from client
+            client_pubkey = 
+            
+            # send the server's public key to the client
+            conn.sendall(b'server_pubkey')
+
+
+
+
+
         # Sends data and recieves the uuid data from the client which can either be "first time user" or the uuid
         conn.sendall(b'secure_code')
         uuid_data = conn.recv(1024)
