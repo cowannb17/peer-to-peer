@@ -7,29 +7,47 @@ from user import user as User
 
 class client:
     
-    def __init__(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
-        if self.get_server_RSA_pubkey() is None:
-            self.keyPair = RSAKeyExchange()
+    class ClientConnection:
+        def __init__(self):
+            """
+            Initializes a ClientConnection object.
+
+            This method creates a socket object for the client and performs a key exchange with the server.
+            It generates a new RSA key pair if the server's public key is not available, and saves the client's
+            public and private keys to files. It then sends the client's public key to the server and receives
+            the server's public key in return.
+
+            Note: The key pair is deleted from memory after the key exchange to prevent it from being accessed
+            by other programs.
+
+            Args:
+                None
+
+            Returns:
+                None
+            """
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             
-            self.save_RSA_pubkey(self.keyPair.get_public_key())
-            self.save_RSA_privkey(self.keyPair.get_private_key())
-            # Delete the keypair from memory to prevent it from being accessed by other programs
-            self.keyPair = None
-            gc.collect()
+            if self.get_server_RSA_pubkey() is None:
+                self.keyPair = RSAKeyExchange()
+                
+                self.save_RSA_pubkey(self.keyPair.get_public_key())
+                self.save_RSA_privkey(self.keyPair.get_private_key())
+                # Delete the keypair from memory to prevent it from being accessed by other programs
+                self.keyPair = None
+                gc.collect()
 
-            # Key exchange between client and server
-        
-            # Send public key to server
-            self.sock.send(self.get_RSA_pubkey())
+                # Key exchange between client and server
+            
+                # Send public key to server
+                self.sock.send(self.get_RSA_pubkey())
 
-            # Recieve public key from server
-            self.save_server_RSA_pubkey(self.sock.recv(1024))
+                # Recieve public key from server
+                self.save_server_RSA_pubkey(self.sock.recv(1024))
 
-            # now the client has the server's public key, and the server has the client's public key
-            # the client can now send the server a message encrypted with the server's public key
-            # and the server can decrypt it with its private key
+                # now the client has the server's public key, and the server has the client's public key
+                # the client can now send the server a message encrypted with the server's public key
+                # and the server can decrypt it with its private key
 
         
 
