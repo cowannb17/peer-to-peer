@@ -3,9 +3,13 @@ import msvcrt
 import socket
 import threading
 import uuid as UUID
+import sqlite3
 
 max_threads = 3
 
+from database import database
+
+db = database()
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
     with conn:
