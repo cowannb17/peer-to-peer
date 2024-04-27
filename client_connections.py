@@ -1,9 +1,12 @@
 import socket
+from RSAKeyExchange import RSAKeyExchange
 import keyring
 import tkinter as tk
 from user import user as User
 
 class client:
+    privateKey = None
+    publicKey = None
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
    
@@ -28,6 +31,9 @@ class client:
     # Private Method:
     # Connects to server, returns True if connection was successful, False if there were issues
     def __connect_to_server(self):
+
+        if self.load_user_id() is None:
+            self.keyExchange()
         try:
             # connects to server and recieves data
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,6 +76,23 @@ class client:
             self.sock.close()
             return False
     
+    def keyExchange(self):
+        keyPair = RSAKeyExchange()
+        self.publicKey = keyPair.get_public_key
+        self.privateKeyKey = keyPair.get_private_key
+
+        # Send public key to server
+        self.sock.send(self.publicKey)
+
+        # Recieve public key from server
+        serverPublicKey = self.sock.recv(1024)
+
+        # now the client has the server's public key, and the server has the client's public key
+        # the client can now send the server a message encrypted with the server's public key
+        # and the server can decrypt it with its private key
+        
+        
+
 
     def __request_connection_data(self):
         self.sock.send(self.encode_message("connection_data"))

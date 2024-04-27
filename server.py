@@ -33,7 +33,7 @@ def accept_connection(conn, addr):
             uuid_str = str(uuid)
             conn.send(uuid_str.encode()) # .encode creates a byte string, which is then sent
             active_user = uuid_str
-        
+
         if b'UUID: ' in uuid_data:
             conn.send(b'verified')
             uuid = uuid_data[6:] # Removes "UUID: " part of string
