@@ -45,6 +45,8 @@ def accept_connection(conn, addr):
             pubKeyString = f'{server_public_key}'
             conn.sendall(pubKeyString.encode())
 
+            # TODO: Assign UUID to the client
+
         # If the client is not a first time user, then the client is a returning user
         # The client will send their UUID to the server encrypted with the server's public key
        
@@ -52,7 +54,9 @@ def accept_connection(conn, addr):
         encrypted_uuid = conn.recv(1024)
         # Decrypt the UUID with the server's private key
         uuid = rsa.decrypt(encrypted_uuid, server_public_key)
+        uuid = uuid.decode('utf-8')
         print(f"UUID: {uuid}")
+
 
         
 
