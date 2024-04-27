@@ -5,11 +5,20 @@ import tkinter as tk
 from user import user as User
 
 class client:
-    privateKey = None
-    publicKey = None
+    
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-   
+        self.keyPair = RSAKeyExchange()
+        # Send public key to server
+        self.sock.send(self.keyPair.get_public_key())
+
+        # Recieve public key from server
+        self.serverPublicKey = self.sock.recv(1024)
+
+        # now the client has the server's public key, and the server has the client's public key
+        # the client can now send the server a message encrypted with the server's public key
+        # and the server can decrypt it with its private key
+
 
     # Will encode the message with whatever encoding we decide on, currently only turns a string into a byte string
     def encode_message(self, message):
@@ -76,20 +85,7 @@ class client:
             self.sock.close()
             return False
     
-    def keyExchange(self):
-        keyPair = RSAKeyExchange()
-        self.publicKey = keyPair.get_public_key
-        self.privateKeyKey = keyPair.get_private_key
-
-        # Send public key to server
-        self.sock.send(self.publicKey)
-
-        # Recieve public key from server
-        serverPublicKey = self.sock.recv(1024)
-
-        # now the client has the server's public key, and the server has the client's public key
-        # the client can now send the server a message encrypted with the server's public key
-        # and the server can decrypt it with its private key
+    
         
         
 
