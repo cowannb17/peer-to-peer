@@ -9,6 +9,10 @@ class client:
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.keyPair = RSAKeyExchange()
+
+        self.save_RSA_pubkey(self.keyPair.get_public_key())
+        self.save_RSA_privkey(self.keyPair.get_private_key())
+        
         # Send public key to server
         self.sock.send(self.keyPair.get_public_key())
 
@@ -36,6 +40,21 @@ class client:
     def load_user_id(self):
         return keyring.get_password("p2p", "uuid")
 
+    # Saves public key to keyring
+    def save_RSA_pubkey(self, pubkey):
+        keyring.set_password("p2p", "pubkey", pubkey)
+
+    # Saves private key to keyring
+    def save_RSA_privkey(self, privkey):
+        keyring.set_password("p2p", "privkey", privkey)
+
+    # Gets public key from keyring
+    def get_RSA_pubkey(self):
+        return keyring.get_password("p2p", "pubkey")
+
+    # Gets private key from keyring
+    def get_RSA_privkey(self):
+        return keyring.get_password("p2p", "privkey")
 
     # Private Method:
     # Connects to server, returns True if connection was successful, False if there were issues
