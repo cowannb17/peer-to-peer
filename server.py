@@ -53,7 +53,9 @@ def accept_connection(conn, addr):
             # Recieve UUID from client
             encrypted_uuid = conn.recv(1024)
             # Decrypt the UUID with the server's private key
-            decrypted_uuid = rsa.decrypt(encrypted_uuid, )
+            uuid = rsa.decrypt(encrypted_uuid, server_public_key)
+
+        
 
 
 
