@@ -5,14 +5,69 @@ import threading
 import uuid as UUID
 import sqlite3
 
+import rsa
+
 max_threads = 3
+
+
+def checkKeys():
+    # Check if the keys are already generated
+    try:
+        with open('server_private.pem', 'rb') as file:
+            private_key = rsa.PrivateKey.load_pkcs1(file.read())
+        with open('server_public.pem', 'rb') as file:
+            public_key = rsa.PublicKey.load_pkcs1(file.read())
+    except FileNotFoundError:
+        # Generate a new key pair
+        (public_key, private_key) = rsa.newkeys(512)
+        with open('server_private.pem', 'wb') as file:
+            file.write(private_key.save_pkcs1())
+        with open('server_public.pem', 'wb') as file:
+            file.write(public_key.save_pkcs1())
+    return public_key, private_key
+
+server_public_key, server_private_key = checkKeys()
+
+
 
 from database import database
 
 db = database()
+
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
     with conn:
+        
+        # Check if this is a first time user or a returning user
+        msg = conn.recv(1024)
+        # if client is the requsting to send their public key , then the client is a first time user
+        if msg == b'public_key': #client wants to send public key
+            # Send message to client requesting public key
+            conn.sendall(b'send_public_key')
+            # Recieve public key from client
+            client_pubkey = conn.recv(1024).decode('utf-8')
+            
+            # send the server's public key to the client
+            pubKeyString = f'{server_public_key}'
+            conn.sendall(pubKeyString.encode())
+
+            # TODO: Assign UUID to the client
+
+        # If the client is not a first time user, then the client is a returning user
+        # The client will send their UUID to the server encrypted with the server's public key
+       
+        # Recieve UUID from client
+        encrypted_uuid = conn.recv(1024)
+        # Decrypt the UUID with the server's private key
+        uuid = rsa.decrypt(encrypted_uuid, server_public_key)
+        uuid = uuid.decode('utf-8')
+        print(f"UUID: {uuid}")
+
+
+        
+
+
+
         # Sends data and recieves the uuid data from the client which can either be "first time user" or the uuid
         conn.sendall(b'secure_code')
         uuid_data = conn.recv(1024)
@@ -37,7 +92,7 @@ def accept_connection(conn, addr):
             uuid_str = str(uuid)
             conn.send(uuid_str.encode()) # .encode creates a byte string, which is then sent
             active_user = uuid_str
-        
+
         if b'UUID: ' in uuid_data:
             conn.send(b'verified')
             uuid = uuid_data[6:] # Removes "UUID: " part of string
