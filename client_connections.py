@@ -19,17 +19,19 @@ class client:
             self.keyPair = None
             gc.collect()
 
-        # Key exchange between client and server
+            # Key exchange between client and server
         
-        # Send public key to server
-        self.sock.send(self.get_RSA_pubkey())
+            # Send public key to server
+            self.sock.send(self.get_RSA_pubkey())
 
-        # Recieve public key from server
-        self.save_server_RSA_pubkey(self.sock.recv(1024))
+            # Recieve public key from server
+            self.save_server_RSA_pubkey(self.sock.recv(1024))
 
-        # now the client has the server's public key, and the server has the client's public key
-        # the client can now send the server a message encrypted with the server's public key
-        # and the server can decrypt it with its private key
+            # now the client has the server's public key, and the server has the client's public key
+            # the client can now send the server a message encrypted with the server's public key
+            # and the server can decrypt it with its private key
+
+        
 
 
     # Will encode the message with whatever encoding we decide on, currently only turns a string into a byte string
