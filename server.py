@@ -12,7 +12,7 @@ from database import database
 db = database()
 
 def get_uid():
-    return str(UUID.uuid4())
+    return str(UUID.uuid5())
 
 def verify_user(uid):
     return db.select_data("users", "uid")[0][0] == uid
