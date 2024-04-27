@@ -46,7 +46,13 @@ def accept_connection(conn, addr):
             active_user = uuid_str
         
         if b'UUID: ' in uuid_data:
-            conn.send(b'verified')
+            # We verify the user by checking if the uuid is in the database
+            if verify_user(uuid_data[6:]):
+                conn.send(b'verified')
+            else:
+                conn.send(b'not_verified')
+                conn.close()
+                return
             uuid = uuid_data[6:] # Removes "UUID: " part of string
             active_user = uuid
 
