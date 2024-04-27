@@ -65,11 +65,12 @@ class client:
                 encoded_userID = self.encode_message(self.load_user_id())
                 # Encrypt the message with the server's public key
                 encrypted_userID = rsa.encrypt(encoded_userID, self.get_server_RSA_pubkey())
-                self.sock.send(b'UUID')
+                self.sock.send(encrypted_userID)
 
-                msg = self.sock.recv(1024).decode('utf-8')
-                if msg == 'send_UUID':
-                    self.sock.send(encrypted_userID)
+                msg = self.sock.recv(1024)
+                decrypted_msg = rsa.decrypt(msg, self.get_RSA_privkey())
+                if decrypted_msg == b'UUID_recived':
+                    print("UUID Recived by server")
                 else:
                     print("Error in UUID exchange")
                     self.sock.close()

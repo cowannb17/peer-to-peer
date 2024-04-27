@@ -47,13 +47,12 @@ def accept_connection(conn, addr):
 
         # If the client is not a first time user, then the client is a returning user
         # The client will send their UUID to the server encrypted with the server's public key
-        if msg == b'UUID':
-            # Send message to client requesting UUID
-            conn.sendall(b'send_UUID')
-            # Recieve UUID from client
-            encrypted_uuid = conn.recv(1024)
-            # Decrypt the UUID with the server's private key
-            uuid = rsa.decrypt(encrypted_uuid, server_public_key)
+       
+        # Recieve UUID from client
+        encrypted_uuid = conn.recv(1024)
+        # Decrypt the UUID with the server's private key
+        uuid = rsa.decrypt(encrypted_uuid, server_public_key)
+        print(f"UUID: {uuid}")
 
         
 
