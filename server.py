@@ -104,7 +104,6 @@ def accept_connection(conn, addr):
                     db.insert_data("files", f"'{file}', '{active_user}'")
 
              
-        
             # If the incoming data is "close_connection" end the connection to the client
             if data == b'close_connection':
                 print(f"Closing connection from {addr}")
