@@ -108,7 +108,7 @@ def accept_connection(conn, addr):
                 file_name = conn.recv(1024)
                 print(file_name)
                 # send file to user
-                conn.sendall(b'file_data')
+                conn.sendall(b'download_file')
                 
                 
         
