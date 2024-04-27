@@ -4,7 +4,29 @@ import socket
 import threading
 import uuid as UUID
 
+import rsa
+
 max_threads = 3
+
+def checkKeys():
+    # Check if the keys are already generated
+    try:
+        with open('server_private.pem', 'rb') as file:
+            private_key = rsa.PrivateKey.load_pkcs1(file.read())
+        with open('server_public.pem', 'rb') as file:
+            public_key = rsa.PublicKey.load_pkcs1(file.read())
+    except FileNotFoundError:
+        # Generate a new key pair
+        (public_key, private_key) = rsa.newkeys(512)
+        with open('server_private.pem', 'wb') as file:
+            file.write(private_key.save_pkcs1())
+        with open('server_public.pem', 'wb') as file:
+            file.write(public_key.save_pkcs1())
+    return public_key, private_key
+
+checkKeys()
+
+
 
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
@@ -24,7 +46,13 @@ def accept_connection(conn, addr):
 
         # If the client is not a first time user, then the client is a returning user
         # The client will send their UUID to the server encrypted with the server's public key
-        
+        if msg == b'UUID':
+            # Send message to client requesting UUID
+            conn.sendall(b'send_UUID')
+            # Recieve UUID from client
+            encrypted_uuid = conn.recv(1024)
+            # Decrypt the UUID with the server's private key
+            decrypted_uuid = rsa.decrypt(encrypted_uuid, )
 
 
 
