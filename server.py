@@ -98,7 +98,7 @@ def accept_connection(conn, addr):
                 # add files to the database
                 print(file_string)
 
-                # add host to host list and file to avaliable file list
+                # add host to host table and file to avaliable file host table
                 file_string = file_string.decode("utf-8")
                 for file in file_string.split(","):
                     db.insert_data("files", f"'{file}', '{active_user}'")
