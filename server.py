@@ -110,6 +110,14 @@ def accept_connection(conn, addr):
                 conn.close()
                 break
 
+            # Getting a file from the server and display all the hosts that have that file on hand
+            if data == b'get_file': 
+                file_name = conn.recv(1024)
+                file_name = file_name.decode("utf-8")
+                hosts = db.select_data("files", "host")
+                print(hosts)
+                conn.sendall(str(hosts).encode())
+
             print(data)
 
 
