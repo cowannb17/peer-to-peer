@@ -95,6 +95,7 @@ def accept_connection(conn, addr):
             # If the incoming data is "host_files" get the list of files the user wants to host
             if data == b'host_files':
                 file_string = conn.recv(1024)
+                
                 # add files to the database
                 print(file_string)
 
@@ -110,14 +111,15 @@ def accept_connection(conn, addr):
                 conn.close()
                 break
 
-            # Getting a file from the server and display all the hosts that have that file on hand
-            if data == b'get_file': 
-                file_name = conn.recv(1024)
-                file_name = file_name.decode("utf-8")
-                hosts = db.select_data("files", "host")
-                print(hosts)
+            # If the incoming data is "get_hosts" get all the hosts uuid for the file from the server and display them to the client 
+            if data == b'get_hosts':
+                file = conn.recv(1024)
+                file = file.decode("utf-8")
+                print(file)
+                hosts = db.select_data("files", "host", f"file = '{file}'")
+                print(f"here is all the hosts: " + hosts + " for file: " + file)
                 conn.sendall(str(hosts).encode())
-
+           
             print(data)
 
 
