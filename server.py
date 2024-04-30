@@ -114,26 +114,26 @@ def accept_connection(conn, addr):
 
         # After opening sequence is finished, listens for many different types of incoming data
         while True:
-            data = conn.recv(1024)
+            data = recieveRsa(server_private_key, conn)
 
             # If there is no data in the message, end the connection
             if not data:
                 break
             
             # If the incoming data is "down_list" send the downloads list to the client
-            if data == b'down_list':
+            if data == 'down_list':
                 file_list = get_file_list()
                 print(file_list)
-                conn.send("abc.txt")
-
+                sendRsa(str(file_list), client_pubkey, conn) # Send file list to client
+                #might neen changes
             # If the incoming data is "connection_data" send back the ip that the user is using
-            if data == b'connection_data':
+            if data == 'connection_data':
                 ip = f"{addr[0]}"
-                conn.sendall(ip.encode())
+                sendRsa(ip.encode(), client_pubkey, conn)
 
             # If the incoming data is "request_downloads" get the list of downloads requested and send the connection info of the files to the user
-            if data == b'request_downloads':
-                download_data = conn.recv(1024)
+            if data == 'request_downloads':
+                download_data = conn.recv(1024) # dont we need to send?
                 print(download_data)
                 # Send all users that offer the requested file to the user
                 # Send the data as ('127.0.0.1', 12345) for each user
