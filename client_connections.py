@@ -1,6 +1,6 @@
 import gc
 import socket
-
+from messageMethods import sendRsa, recieveRsa
 import rsa
 from RSAKeyExchange import RSAKeyExchange
 import keyring
@@ -62,14 +62,11 @@ class client:
                 # and the server can decrypt it with its private key
             else:
                 self.sock.connect(('127.0.0.1', 12756))
-                encoded_userID = self.encode_message(self.load_user_id())
-                # Encrypt the message with the server's public key
-                encrypted_userID = rsa.encrypt(encoded_userID, self.get_server_RSA_pubkey())
-                self.sock.send(encrypted_userID)
 
-                msg = self.sock.recv(1024)
-                decrypted_msg = rsa.decrypt(msg, self.get_RSA_privkey())
-                if decrypted_msg == b'UUID_recived':
+                sendRsa(self.load_user_id(), self.get_server_RSA_pubkey(), self.sock) # Send UUID to server
+                msg = recieveRsa(self.get_RSA_privkey(), self.sock) # Recieve verification from server
+
+                if msg == b'UUID_recived':
                     print("UUID Recived by server")
                 else:
                     print("Error in UUID exchange")
