@@ -3,6 +3,7 @@ import tkinter as tk
 from peer import peer as Peer
 from tkinter import ttk, filedialog
 from client_connections import client as Client
+import time
 
 # creates client class which handles connections between server and client
 client = Client()
@@ -266,6 +267,18 @@ def root_window(connected):
     tk.Label(frame, text=welcome_text).pack()
     return window
 
+# a download progress bar that will be updated as the download progresses for the file
+def download_progress_bar():
+    progress = ttk.Progressbar(window, length=100, mode='determinate')
+    progress.pack()
+
+    for i in range(100):
+        progress['value'] = i
+        window.update_idletasks()
+        time.sleep(0.5)
+
+    progress['value'] = 100
+        
 # Renders the window
 w = root_window(client.first_connection())
 temp_list = client.fetch_downloads_list()
