@@ -28,22 +28,26 @@ class peer:
     def start_downloads(self):
         for index, file in enumerate(self.requestedFiles):
             ip = self.hosts[index]
-            download = self.start_download(ip, file)
-            try:
-                while True:
-                    size = next(download)
-                    yield f"{file}:size:{size}"
-                    break
-            except StopIteration:
-                return
+            print(ip)
+            print(file)
+            self.start_download(ip, file)
+            print("no")
             
-            try:
-                while True:
-                    progression = next(download)
-                    yield progression
-            except StopIteration:
-                return
             
+            #try:
+            #    while True:
+            #        size = next(download)
+            #        yield f"{file}:size:{size}"
+            #        break
+            #except StopIteration:
+            #    return
+            
+            #try:
+            #    while True:
+            #        progression = next(download)
+            #        yield progression
+            #except StopIteration:
+            #    return
 
 
     def request_from_ip(self, ip_list, files_to_download):
@@ -54,33 +58,37 @@ class peer:
     
     def start_download(self, ip, filename):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((ip, 12756))
-        
-        sock.send(self.to_bytes(self.get_RSA_pubkey()))
-        peer_pubkey = sock.recv(1024)
+        sock.connect((ip, 13456))
+
+        sock.send(self.to_bytes(self.get_RSA_pubkey().save_pkcs1().decode('utf-8')))
+        peer_pubkey = rsa.key.PublicKey.load_pkcs1(self.to_string(sock.recv(1024)))
+        print(peer_pubkey)
         
         if not peer_pubkey:
             sock.close()
             return
-
-        sock.send(self.encode_message(peer_pubkey, f"request_file_size:{filename}"))
-        response = sock.recv(1024)
+        
+        print ("asking for size")
+        sendRsa(f"request_file_size:{filename}", peer_pubkey, sock)
+        response = recieveRsa(self.get_RSA_privkey(), sock)
 
         if not response:
             sock.close()
             return
+
+        print(response)
         
-        response = self.decode_message(response)
         size = ""
         if "file_not_available" in response:
             sock.close()
             return
         else:
             size = response.split(":")[1]
-            yield size # Sends the file size to the parent function
+            #yield size # Sends the file size to the parent function
 
-        sock.send(self.encode_message(peer_pubkey, f"request_file:{filename}"))
-        response = sock.recv(1024)
+        print("asking for file")
+        sendRsa(f"request_file:{filename}", peer_pubkey, sock)
+        response = recieveRsa(self.get_RSA_privkey(), sock)
 
         if not response:
             sock.close()
@@ -91,31 +99,17 @@ class peer:
             sock.close()
             return
         
-        buffer = b""
-        # Start receiving file
-        while True:
-            data = sock.recv(1024)
-            yield len(data)
-            if b"file_end" in data:
-                break
-            buffer += data
+        recieved_file = recieveRsa(self.get_RSA_privkey(), sock)
         
-
-        decoded_buffer = ""
-        for i in range(0, len(buffer), 64):
-            chunk = buffer[i:i+64]
-            if len(chunk) == 0:
-                break
-            decoded_buffer += self.decode_message(chunk)
-
         # Gets path of current working directory of the script, and places the downloaded file there
         abspath = os.path.abspath(__file__)
         dirname = os.path.dirname(abspath)
         abs_filename = f"{dirname}\\{filename}"
         with open(abs_filename, 'wb') as file:
-            file.write(self.to_bytes(decoded_buffer))
+            file.write(self.to_bytes(recieved_file))
 
         sock.send(self.encode_message('close_connection'))
+        sock.close()
         return
         
 
@@ -123,70 +117,79 @@ class peer:
     def send_file(self, conn, addr, file_index, peer_pubkey):
         path_to_file = self.hosted_files[file_index]
         file = open(path_to_file, 'rb')
-        try:
-            while True:
-                buffer = b''
-                for _ in range(0, 1024):
-                    chunk = file.read(53) # Max number of bytes we can encrypt at a time with our key
-                    if not chunk:
-                        break
-                    buffer += self.encode_message(peer_pubkey, chunk)
-                conn.sendall(buffer)
-        finally:
-            file.close()
-            conn.send(b"file_end")
+        sendRsa(file.read(), peer_pubkey, conn)
+        #try:
+        #    while True:
+        #        buffer = b''
+        #        for _ in range(0, 1024):
+        #            chunk = file.read(53) # Max number of bytes we can encrypt at a time with our key
+        #            if not chunk:
+        #                break
+        #            buffer += self.encode_message(peer_pubkey, chunk)
+        #        conn.sendall(buffer)
+        #finally:
+        #    file.close()
+        #    conn.send(b"file_end")
         
     # Sends the file to the peer who has requested it
     def init_connection(self, conn, addr):
         print(f"Accepting connection from {addr}")
         with conn:
             peer_pubkey = conn.recv(1024)
+            
             if not peer_pubkey:
                 conn.close()
                 return
+            peer_pubkey = rsa.key.PublicKey.load_pkcs1(self.to_string(peer_pubkey))
             
+
             # Get personal pubkey and send as byte array
             personal_pubkey = self.get_RSA_pubkey()
-            conn.sendall(self.to_bytes(personal_pubkey))
+            conn.sendall(self.to_bytes(personal_pubkey.save_pkcs1().decode('utf-8')))
 
+
+            print("Keys exchanged")
             # Continues incoming connection until a valid 
             while True:
                 # Get file request from user
-                file_data = conn.recv(1024)
+                print("recieve")
+                file_data = recieveRsa(self.get_RSA_privkey(), conn)
+                print("data gotten")
                 if not file_data:
                     conn.close()
                     return
 
                 # Compares decoded message against "request_file and grabs the file the user is requesting"
-                request = self.decode_message(file_data)
+                request = file_data
                 if "request_file_size:" in request:
                     # Removes "request_file_size:" from the string
                     file = request[18:]
                     
                     index = self.hosted_filenames.index(file)
                     if index == -1:
-                        conn.sendall(self.encode_message(peer_pubkey, "file_not_available"))
+                        sendRsa("file_not_available", peer_pubkey, conn)
                         conn.close()
                         return
-                    
+                    print("asking size")
                     size = self.hosted_file_sizes[index]
                     file_and_size = f"{file}:{size}"
-                    conn.sendall(self.encode_message(peer_pubkey, file_and_size))
-                    break
+                    sendRsa(file_and_size, peer_pubkey, conn)
+                    continue
                 elif "request_file:" in request:
+                    print("asking file")
                     file = request[13:]
                     
-                    index = self.host_filenames.index(file)
+                    index = self.hosted_filenames.index(file)
                     if index == -1:
-                        conn.sendall(self.encode_message(peer_pubkey, "file_not_available"))
+                        sendRsa("file_not_available", peer_pubkey, conn)
                         conn.close()
                         return
                     
-                    conn.sendall(self.encode_message(peer_pubkey, f"sending_file:{file}"))
+                    sendRsa(f"sending_file:{file}", peer_pubkey, conn)
 
                     self.send_file(conn, addr, index, peer_pubkey)
 
-                    break
+                    continue
                 elif request == "close_connection":
                     conn.close()
                     return
@@ -202,7 +205,7 @@ class peer:
     def start_listen(self):
         # Start socket for hosting
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(('127.0.0.1', 12756))
+        sock.bind(('127.0.0.1', 13456))
         sock.listen()
 
         global open
