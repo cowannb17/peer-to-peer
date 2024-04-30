@@ -61,13 +61,14 @@ class client:
             # now the client has the server's public key, and the server has the client's public key
             # the client can now send the server a message encrypted with the server's public key
             # and the server can decrypt it with its private key
+            sendRsa("UUID_request", self.get_server_RSA_pubkey(), self.sock)
             uuid = recieveRsa(self.get_RSA_privkey(), self.sock)
             self.save_user_id(uuid)
 
         else:
             self.sock.connect(('127.0.0.1', 12756))
 
-            sendRsa("UUID_request", self.get_server_RSA_pubkey , self.sock) # Send UUID to server
+            sendRsa("UUID_request", self.get_server_RSA_pubkey(), self.sock) # Send UUID to server
             uuid = recieveRsa(self.get_RSA_privkey(), self.sock) # Recieve verification from server
             
             if uuid == "not_verified":

@@ -40,5 +40,20 @@ class database:
             conn.commit()
         except Exception:
             print("error deleting data:" )
+
+    def execute_select(self, command):
+        try:
+            result = cursor.execute(command)
+            return result
+        except Exception:
+            print("Error in custom select command")
+
+    def execute_insert(self, command):
+        try:
+            result = cursor.execute(command)
+            conn.commit()
+        except Exception:
+            print("Error in custom insert command")
+
     
    

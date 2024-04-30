@@ -33,13 +33,20 @@ def create_uuid():
     return str(UUID.uuid4())
 
 def verify_user(uuid):
-    return db.select_data("Users", ["UUID"], f"UUID='{uuid}'")[0][0] == uuid
+    data = db.execute_select(f"SELECT UUID FROM Users WHERE UUID LIKE {uuid}")
+    print(data)
+    return data
 
 def add_user(uuid, pubkey):
-    db.insert_data("Users", (uuid, pubkey))
+    db.execute_insert(f"INSERT INTO Users VALUES ({uuid}, {pubkey})")
+
+def get_uuid_pubkey(uuid):
+    data = db.execute_select(f"SELECT pubkey FROM Users WHERE UUID LIKE {uuid}")
+    print(data)
+    return data
 
 def get_user_id(uuid):
-    return db.select_data("Users", ["uuid"], f"UUID='{uuid}'")[0][0]
+    return db.select_data("Users", ["UUID"], f"UUID='{uuid}'")[0][0]
 
 def add_file(filename, uuid):
     db.insert_data("Files", (filename, uuid))
@@ -79,9 +86,12 @@ def accept_connection(conn, addr):
             active_user = uuid_str
             add_user(uuid_str, client_pubkey_pem)
 
+            recieveRsa(server_private_key, conn)
+
 
         # If the client is not a first time user, then the client is a returning user
         # The client will send their UUID to the server encrypted with the server's public key
+
 
 
         # Recieve UUID from client
@@ -91,6 +101,7 @@ def accept_connection(conn, addr):
             return
         
         # Decrypt the UUID with the server's private key
+        print(encrypted_uuid)
         uuid = rsa.decrypt(encrypted_uuid, server_private_key)
         uuid = uuid.decode('utf-8')
         if uuid == "UUID_request":
