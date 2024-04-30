@@ -94,13 +94,18 @@ class peer:
             sock.close()
             return
         
-        response = self.decode_message(response)
         if "file_not_available" in response:
             sock.close()
             return
         
+        print("Getting file")
         recieved_file = recieveRsa(self.get_RSA_privkey(), sock)
-        
+        print("File finished")
+
+        if not recieved_file:
+            sock.close()
+            return
+
         # Gets path of current working directory of the script, and places the downloaded file there
         abspath = os.path.abspath(__file__)
         dirname = os.path.dirname(abspath)
@@ -108,18 +113,17 @@ class peer:
         with open(abs_filename, 'wb') as file:
             file.write(self.to_bytes(recieved_file))
 
-        sock.send(self.encode_message('close_connection'))
+        sendRsa("close_connection", peer_pubkey, sock)
         sock.close()
-        return
+        return True
         
 
 
     def send_file(self, conn, addr, file_index, peer_pubkey):
         path_to_file = self.hosted_files[file_index]
-        file = open(path_to_file, 'rb')
-        # Convert file to a string
-        fileContentsAsString = file.read().decode('utf-8')
-        sendRsa(fileContentsAsString, peer_pubkey, conn)
+        print(path_to_file)
+        with open(path_to_file, 'r') as file:
+            sendRsa(file.read(), peer_pubkey, conn)
         #try:
         #    while True:
         #        buffer = b''
@@ -210,10 +214,10 @@ class peer:
         sock.bind(('127.0.0.1', 13456))
         sock.listen()
 
-        global open
-        open = True
+        global open_sockets
+        open_sockets = True
         # Start while loop for hosting
-        while open:
+        while open_sockets:
             conn, addr = sock.accept() # conn = socket, addr = Ip address
 
             # If new request, make a new thread and being sending the data

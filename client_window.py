@@ -1,5 +1,5 @@
-import ast
 import time
+import threading
 import tkinter as tk
 from peer import peer as Peer
 from tkinter import ttk, filedialog
@@ -173,7 +173,10 @@ def host_files(hosted_files_list):
     client.notify_of_hosting(hosted_files_list)
     peer.configure_hosting(hosted_files_list)
     tk.Label(frame, text=f"Hosting:\n{hosted_files_list}").pack()
-    peer.start_listen()
+    thread = threading.Thread(target=peer.start_listen)
+    thread.daemon = True
+    thread.start()
+
 
 # Removes the file to host from the frame
 def remove_file(file_frame, hosted_files, label, button):
