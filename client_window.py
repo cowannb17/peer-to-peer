@@ -1,4 +1,5 @@
 import ast
+import time
 import tkinter as tk
 from peer import peer as Peer
 from tkinter import ttk, filedialog
@@ -38,12 +39,24 @@ def find_combo_boxes(parent):
     return combo_boxes
 
 def start_downloads(file_list):
-    selection = [combo.get() for combo in find_combo_boxes(window)]
+    peer_selections = [combo.get() for combo in find_combo_boxes(window)]
     files = [file[0] for file in file_list]
     clearFrame()
     
     global peer
     peer = Peer(client.user)
+    peer.configure_downloads(files, peer_selections)
+    downloads = peer.start_downloads()
+    for file in files:
+        try:
+            while True:
+                size = next(downloads)
+                break
+        except StopIteration:
+            return
+        
+
+
 
 
 def select_location_frame(file_list):

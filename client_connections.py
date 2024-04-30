@@ -168,9 +168,6 @@ class client:
             return False
     
     
-        
-        
-
 
     def __request_connection_data(self):
         self.sock.send(self.encode_message("connection_data"))
