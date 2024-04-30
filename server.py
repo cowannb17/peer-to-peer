@@ -95,19 +95,18 @@ def accept_connection(conn, addr):
         uuid = uuid.decode('utf-8')
         if uuid == "UUID_request":
             uuid_str = create_uuid()
-            uuid_message = rsa.encrypt(uuid_str, client_pubkey)
-            conn.send(uuid_message) # .encode creates a byte string, which is then sent
+            sendRsa(uuid_str, client_pubkey, conn) # Send UUID to client
             active_user = uuid_str
         elif "UUID:" in uuid:
             if not verify_user(uuid[5:]):
-                conn.send("not_verified")
+                sendRsa("not_verified", client_pubkey, conn)
                 conn.close()
                 return
             else:
-                conn.send("verified")
+                sendRsa("verified", client_pubkey, conn)
                 active_user = uuid[5:]
         else:
-            conn.send("not_verified")
+            sendRsa("not_verified", client_pubkey, conn)
             conn.close()
             return
 
