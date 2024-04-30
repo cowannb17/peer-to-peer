@@ -61,30 +61,24 @@ class client:
             # now the client has the server's public key, and the server has the client's public key
             # the client can now send the server a message encrypted with the server's public key
             # and the server can decrypt it with its private key
-            uuid = self.sock.recv(1024)
-            decrypted_uuid = self.decode_message(uuid)
-            self.save_user_id(decrypted_uuid)
+            sendRsa("UUID_request", self.get_server_RSA_pubkey(), self.sock)
+            uuid = recieveRsa(self.get_RSA_privkey(), self.sock)
+            self.save_user_id(uuid)
 
         else:
             self.sock.connect(('127.0.0.1', 12756))
-            # Encrypt the message with the server's public key
-            uuid_request = rsa.encrypt("UUID_request", self.get_server_RSA_pubkey())
-            self.sock.send(uuid_request)
 
-            msg = self.sock.recv(1024)
-            privkey = self.get_RSA_privkey()
-            print(privkey)
-            decrypted_msg = rsa.decrypt(msg, self.get_RSA_privkey())
-
-            uuid = self.sock.recv(1024)
-            decrypted_uuid = self.decode_message(uuid)
-            self.save_user_id(decrypted_uuid)
+            sendRsa("UUID_request", self.get_server_RSA_pubkey(), self.sock) # Send UUID to server
+            uuid = recieveRsa(self.get_RSA_privkey(), self.sock) # Recieve verification from server
+            
+            if uuid == "not_verified":
+                print("UUID is Unverified")
+                self.sock.close()
+                return
+            
+            self.save_user_id(uuid)
 
         self.sock.close()
-
-
-        
-
 
     # Turns a string into a byte string
     def to_bytes(self, message):
@@ -102,8 +96,6 @@ class client:
     # Decodes the message using our private key
     def decode_message(self, message):
         privkey = self.get_RSA_privkey()
-        print(privkey)
-        print(message)
         return rsa.decrypt(message, self.get_RSA_privkey())
 
     # Saves user id to keyring
@@ -147,7 +139,6 @@ class client:
     # Gets server public key from keyring
     def get_server_RSA_pubkey(self):
         key_string = keyring.get_password("p2p", "server_pubkey")
-        print(key_string)
         if key_string is None:
             return None
         else:
@@ -164,15 +155,11 @@ class client:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect(('127.0.0.1', 12756))
 
-            # Gets user id and sends it to the server, if there is no user id it requests one from the server
-            user_id = self.load_user_id()
             # Sends message with the uuid to the server
-            message = self.encode_message("UUID:{user_id}")
-            self.sock.send(message)
+            sendRsa(f"UUID:{self.load_user_id()}", self.get_server_RSA_pubkey(), self.sock)
 
             # Recieves verification, if not verified closes connection
-            verification_data = self.sock.recv(1024)
-            verification = self.decode_message(verification_data)
+            verification = recieveRsa(self.get_RSA_privkey(), self.sock)
             if "not_verified" in verification:
                 print("Unverified")
                 self.sock.close()
@@ -187,17 +174,14 @@ class client:
     
 
     def __request_connection_data(self):
-        self.sock.send(self.encode_message(self.get_server_RSA_pubkey, "connection_data"))
-        data = self.sock.recv(1024)
-        if not data:
-            return
-        return self.decode_message(data)
+        sendRsa("connection_data", self.get_server_RSA_pubkey(), self.sock)
+        return recieveRsa(self.get_RSA_privkey(), self.sock)
 
     # Connects to the server for the first time, then closes the connection
     def first_connection(self):
         status = self.__connect_to_server()
         self.user = User(self.load_user_id(), self.__request_connection_data())
-        self.sock.send(b'close_connection')
+        sendRsa("close_connection", self.get_server_RSA_pubkey(), self.sock)
         self.sock.detach()
         return status
 
@@ -207,13 +191,11 @@ class client:
         if not self.__connect_to_server():
             return None
         
-        # Encodes and sends the message to request the downloads list
-        message = self.encode_message("down_list")
-        self.sock.send(message)
+        #Requests the downloads list
+        sendRsa("down_list", self.get_server_RSA_pubkey(), self.sock)
 
         # Receives data on all available downloads
-        download_data = self.sock.recv(1024)
-        downloads_list = self.decode_message(download_data)
+        downloads_list = recieveRsa(self.get_RSA_privkey(), self.sock)
 
         downloads = []
         # Creates a dictionary of lists of download files and checkbox boolean variables to associate a file with a checkbox later on in the downloads GUI
@@ -221,7 +203,7 @@ class client:
             downloads.append( {"filename": filename, "checked": tk.BooleanVar()} ) # Creation of download dictionary
         
         print("Downloads Fetched")
-        self.sock.send(b'close_connection')
+        sendRsa("close_connection", self.get_server_RSA_pubkey(), self.sock)
         self.sock.detach()
         return downloads
     
@@ -235,18 +217,15 @@ class client:
             return None
         
         # send server list of files the client wants to download
-        message = self.encode_message("request_downloads")
-        self.sock.send(message)
-        self.sock.send(self.encode_message(download_request_list))
+        sendRsa("request_downloads", self.get_server_RSA_pubkey(), self.sock)
+        sendRsa(download_request_list, self.get_server_RSA_pubkey(), self.sock)
 
         # Recieves list of users who will host the requested file(s)
-        data = self.sock.recv(1024)
-        if not data:
-            return None
+        data = recieveRsa(self.get_RSA_privkey(), self.sock)
 
-        self.sock.send(b'close_connection')
+        sendRsa("close_connection", self.sock)
         self.sock.detach()
-        return self.decode_message(data)
+        return data
     
     
     def notify_of_hosting(self, files_to_host):
@@ -254,7 +233,6 @@ class client:
         file_names = [file.split("/")[-1] for file in files_to_host]
         #one liner to add double quotes around each file name and put them in a single string
         files = ','.join(['"' + file_name + '"' for file_name in file_names])
-        message = self.encode_message(files)
         
         # Connects to server
         status = self.__connect_to_server()
@@ -262,9 +240,9 @@ class client:
             return
 
         # Sends server list of files client wants to host
-        self.sock.send(self.encode_message("host_files"))        
-        self.sock.send(message)
+        sendRsa("host_files", self.get_server_RSA_pubkey(), self.sock)
+        sendRsa(files, self.get_server_RSA_pubkey(), self.sock)
         
         # Disconnects from server
-        self.sock.send(b'close_connection')
+        sendRsa("close_connection", self.get_server_RSA_pubkey(), self.sock)
         self.sock.detach()

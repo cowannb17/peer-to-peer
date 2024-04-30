@@ -1,5 +1,6 @@
 # Code for server client of peer-to-peer system
 import rsa
+from messageMethods import sendRsa, recieveRsa
 import msvcrt
 import socket
 import threading
@@ -26,33 +27,40 @@ def checkKeys():
 
 server_public_key, server_private_key = checkKeys()
 
-db = database()
+db_init = database()
 
 def create_uuid():
     return str(UUID.uuid4())
 
-def verify_user(uuid):
-    return db.select_data("Users", ["UUID"], f"UUID='{uuid}'")[0][0] == uuid
+def verify_user(db, uuid):
+    data = db.select_data("Users", "uuid")
+    result = any(uuid == value[0] for value in data) # Checks to see if the uuid is in the list of UUIDs
+    return result
 
-def add_user(uuid, pubkey):
-    db.insert_data("Users", (uuid, pubkey))
+def add_user(db, uuid, pubkey):
+    db.insert_data("Users", "'{}', '{}'".format(uuid, pubkey))
 
-def get_user_id(uuid):
-    return db.select_data("Users", ["uuid"], f"UUID='{uuid}'")[0][0]
+def get_uuid_pubkey(db, uuid):
+    data = db.execute_select("SELECT pubkey FROM Users WHERE UUID LIKE '{}'".format(uuid))[0][0]
+    return data
 
-def add_file(filename, uuid):
+def get_user_id(db, uuid):
+    return db.select_data("Users", ["UUID"], f"UUID='{uuid}'")[0][0]
+
+def add_file(db, filename, uuid):
     db.insert_data("Files", (filename, uuid))
 
-def get_file_list():
-    result = db.select_data("Files", ["DISTINCT filename"], "")
-    distinct_files = [row[0] for row in result]
-    return distinct_files
+def get_file_list(db):
+    result = db.select_data("Files", "filename")[0]
+    print(result)
+    return result[0]
 
-def add_host(uuid, ip):
+def add_host(db, uuid, ip):
     db.insert_data("Hosts", (uuid, ip))
 
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
+    db = database()
     with conn:
         
         # Check if this is a first time user or a returning user
@@ -70,44 +78,49 @@ def accept_connection(conn, addr):
             pubKeyString = f'{pubkey_pem}'
             conn.sendall(pubKeyString.encode())
 
-            uuid_str = create_uuid()
-            uuid_message = rsa.encrypt(uuid_str.encode(), client_pubkey)
-            conn.send(uuid_message) # .encode creates a byte string, which is then sent
-            active_user = uuid_str
-            add_user(uuid_str, client_pubkey_pem)
+            # Now that keys have been exchanged, send the client a UUID
 
-            # Listen for encrypted uuid to arrive
-            msg = conn.recv(1024)
+            uuid_str = create_uuid()
+            sendRsa(uuid_str, client_pubkey, conn) # Send UUID to client
+            
+            active_user = uuid_str
+            add_user(db, uuid_str, client_pubkey_pem)
+
+            recieveRsa(server_private_key, conn)
 
 
         # If the client is not a first time user, then the client is a returning user
         # The client will send their UUID to the server encrypted with the server's public key
-        if not msg:
-            conn.close()
-            return
+
 
 
         # Recieve UUID from client
         encrypted_uuid = msg
+
+        if not encrypted_uuid:
+            return
         
         # Decrypt the UUID with the server's private key
-        uuid = rsa.decrypt(encrypted_uuid, server_public_key)
+        print(encrypted_uuid)
+        if encrypted_uuid == b'public_key':
+            return
+        uuid = rsa.decrypt(encrypted_uuid, server_private_key)
         uuid = uuid.decode('utf-8')
         if uuid == "UUID_request":
             uuid_str = create_uuid()
-            uuid_message = rsa.encrypt(uuid_str, client_pubkey)
-            conn.send(uuid_message) # .encode creates a byte string, which is then sent
+            sendRsa(uuid_str, client_pubkey, conn) # Send UUID to client
             active_user = uuid_str
         elif "UUID:" in uuid:
-            if not verify_user(uuid[5:]):
-                conn.send("not_verified")
+            if not verify_user(db, uuid[5:]):
+                #sendRsa("not_verified", client_pubkey, conn)
                 conn.close()
                 return
             else:
-                conn.send("verified")
+                client_pubkey = rsa.key.PublicKey.load_pkcs1(get_uuid_pubkey(db, uuid[5:]))
+                sendRsa("verified", client_pubkey, conn)
                 active_user = uuid[5:]
         else:
-            conn.send("not_verified")
+            #sendRsa("not_verified", client_pubkey, conn)
             conn.close()
             return
 
@@ -115,26 +128,26 @@ def accept_connection(conn, addr):
 
         # After opening sequence is finished, listens for many different types of incoming data
         while True:
-            data = conn.recv(1024)
+            data = recieveRsa(server_private_key, conn)
 
             # If there is no data in the message, end the connection
             if not data:
                 break
             
             # If the incoming data is "down_list" send the downloads list to the client
-            if data == b'down_list':
-                file_list = get_file_list()
+            if data == 'down_list':
+                file_list = get_file_list(db)
                 print(file_list)
-                conn.send("abc.txt")
-
+                sendRsa(str(file_list), client_pubkey, conn) # Send file list to client
+                #might neen changes
             # If the incoming data is "connection_data" send back the ip that the user is using
-            if data == b'connection_data':
+            if data == 'connection_data':
                 ip = f"{addr[0]}"
-                conn.sendall(ip.encode())
+                sendRsa(ip, client_pubkey, conn)
 
             # If the incoming data is "request_downloads" get the list of downloads requested and send the connection info of the files to the user
-            if data == b'request_downloads':
-                download_data = conn.recv(1024)
+            if data == 'request_downloads':
+                download_data = conn.recv(1024) # dont we need to send?
                 print(download_data)
                 # Send all users that offer the requested file to the user
                 # Send the data as ('127.0.0.1', 12345) for each user
@@ -163,7 +176,7 @@ def accept_connection(conn, addr):
                 conn.close()
                 break
 
-            print(data)
+            #print(data)
 
 
 # Allows for closing of socket while it is still listening, waits for 'Ctrl-C' press then closes socket
@@ -175,9 +188,11 @@ def await_keypress(sock):
             sock.close()
             break
 
-db.create_table("Users", "UUID TEXT PRIMARY KEY, pubkey TEXT")
-db.create_table("Files", "filename TEXT, host_uuid TEXT PRIMARY KEY")
-db.create_table("Hosts", "host_uuid TEXT PRIMARY KEY, ip TEXT")
+db_init.create_table("Users", "UUID, pubkey")
+db_init.create_table("Files", "filename, host_uuid")
+db_init.create_table("Hosts", "host_uuid, ip")
+db_init.insert_data("Files", "'a.txt', 'none'")
+db_init.insert_data("Hosts", "'none', '127.0.0.1'")
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
