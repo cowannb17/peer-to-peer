@@ -211,7 +211,6 @@ class client:
     # Requests a list of hosts for the list of files given to the server, takes in a comma seperated string of downloads
     def get_download_users(self, download_request_list):
         status = self.__connect_to_server()
-        
         # If the connection to the server fails, return None
         if not status:
             return None

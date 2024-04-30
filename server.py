@@ -40,6 +40,9 @@ def verify_user(db, uuid):
 def add_user(db, uuid, pubkey):
     db.insert_data("Users", "'{}', '{}'".format(uuid, pubkey))
 
+def add_file(db, filename, uuid):
+    db.insert_data("Files", "'{}', '{}'".format(filename, uuid))
+
 def get_uuid_pubkey(db, uuid):
     data = db.execute_select("SELECT pubkey FROM Users WHERE UUID LIKE '{}'".format(uuid))[0][0]
     return data
@@ -145,8 +148,7 @@ def accept_connection(conn, addr):
 
             # If the incoming data is "request_downloads" get the list of downloads requested and send the connection info of the files to the user
             if data == 'request_downloads':
-                download_data = conn.recv(1024) # dont we need to send?
-                print(download_data)
+                download_data = recieveRsa(server_private_key, conn)
                 # Send all users that offer the requested file to the user
                 # Send the data as ('127.0.0.1', 12345) for each user
                 # Each file will have its own list as well e.g.
@@ -154,17 +156,18 @@ def accept_connection(conn, addr):
                 # File 1 has only a single host, file 2 has 2 hosts.
                 packet = ''
 
-                download_data = download_data.decode("utf-8")
                 for i in range(0, len(download_data.split(","))):
                     packet += '[(\'127.0.0.1\', 12756)],'
 
                 packet = packet[:-1]
                 packet = "[(\'1.2.3.4\', 12345)],[(\'5.6.7.8\', 61234), (\'9.0.1.2\', 56789)]"
-                conn.send(packet.encode())
+                sendRsa(packet, client_pubkey, conn)
 
             # If the incoming data is "host_files" get the list of files the user wants to host
             if data == 'host_files':
-                file_string = conn.recv(1024)
+                file_string = file_string = recieveRsa(server_private_key, conn)
+                for file in file_string.split(","):
+                    add_file(db, file, active_user)
                 # add files to the database
                 print(file_string)
 
