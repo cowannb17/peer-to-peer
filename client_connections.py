@@ -67,8 +67,14 @@ class client:
         else:
             self.sock.connect(('127.0.0.1', 12756))
 
-            sendRsa(self.load_user_id(), "UUID_request", self.sock) # Send UUID to server
+            sendRsa("UUID_request", self.get_server_RSA_pubkey , self.sock) # Send UUID to server
             uuid = recieveRsa(self.get_RSA_privkey(), self.sock) # Recieve verification from server
+            
+            if uuid == "not_verified":
+                print("UUID is Unverified")
+                self.sock.close()
+                return
+            
             self.save_user_id(uuid)
 
         self.sock.close()
