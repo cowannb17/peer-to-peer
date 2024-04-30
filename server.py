@@ -1,14 +1,12 @@
 # Code for server client of peer-to-peer system
+import rsa
 import msvcrt
 import socket
 import threading
 import uuid as UUID
 from database import database
 
-import rsa
-
 max_threads = 3
-
 
 def checkKeys():
     # Check if the keys are already generated
@@ -30,6 +28,29 @@ server_public_key, server_private_key = checkKeys()
 
 db = database()
 
+def create_uuid():
+    return str(UUID.uuid4())
+
+def verify_user(uuid):
+    return db.select_data("Users", ["UUID"], f"UUID='{uuid}'")[0][0] == uuid
+
+def add_user(uuid, pubkey):
+    db.insert_data("Users", (uuid, pubkey))
+
+def get_user_id(uuid):
+    return db.select_data("Users", ["uuid"], f"UUID='{uuid}'")[0][0]
+
+def add_file(filename, uuid):
+    db.insert_data("Files", (filename, uuid))
+
+def get_file_list():
+    result = db.select_data("Files", ["DISTINCT filename"], "")
+    distinct_files = [row[0] for row in result]
+    return distinct_files
+
+def add_host(uuid, ip):
+    db.insert_data("Hosts", (uuid, ip))
+
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
     with conn:
@@ -41,58 +62,56 @@ def accept_connection(conn, addr):
             # Send message to client requesting public key
             conn.sendall(b'send_public_key')
             # Recieve public key from client
-            client_pubkey = conn.recv(1024).decode('utf-8')
-            
+            client_pubkey_pem = conn.recv(1024).decode('utf-8')
+            client_pubkey = rsa.key.PublicKey.load_pkcs1(client_pubkey_pem)
+
             # send the server's public key to the client
-            pubKeyString = f'{server_public_key}'
+            pubkey_pem = server_public_key.save_pkcs1().decode('utf-8')
+            pubKeyString = f'{pubkey_pem}'
             conn.sendall(pubKeyString.encode())
 
-            # TODO: Assign UUID to the client
+            uuid_str = create_uuid()
+            uuid_message = rsa.encrypt(uuid_str.encode(), client_pubkey)
+            conn.send(uuid_message) # .encode creates a byte string, which is then sent
+            active_user = uuid_str
+            add_user(uuid_str, client_pubkey_pem)
+
+            # Listen for encrypted uuid to arrive
+            msg = conn.recv(1024)
+
 
         # If the client is not a first time user, then the client is a returning user
         # The client will send their UUID to the server encrypted with the server's public key
-       
+        if not msg:
+            conn.close()
+            return
+
+
         # Recieve UUID from client
-        encrypted_uuid = conn.recv(1024)
+        encrypted_uuid = msg
+        
         # Decrypt the UUID with the server's private key
         uuid = rsa.decrypt(encrypted_uuid, server_public_key)
         uuid = uuid.decode('utf-8')
-        print(f"UUID:{uuid}")
-
-
-        
-
-
-
-        # Sends data and recieves the uuid data from the client which can either be "first time user" or the uuid
-        conn.sendall(b'secure_code')
-        uuid_data = conn.recv(1024)
-        
-        # If the return message is blank end the connection
-        if not uuid_data:
-            conn.close()
-            return
-        
-        # Checks to see if the user is either a first time user or that the uuid is sent with correct formatting
-        if b'UUID:' not in uuid_data and b'first time user' not in uuid_data:
-            conn.close()
-            return
-        
-        active_user = ""
-
-        # If the user is a first time user, we create and send them their uuid and proceed with the resultant as the active user
-        if b'first time user' in uuid_data:
-            print("First time user")
-            # Grant UUID to connector and create user
-            uuid = UUID.uuid5()
-            uuid_str = str(uuid)
-            conn.send(uuid_str.encode()) # .encode creates a byte string, which is then sent
+        if uuid == "UUID_request":
+            uuid_str = create_uuid()
+            uuid_message = rsa.encrypt(uuid_str, client_pubkey)
+            conn.send(uuid_message) # .encode creates a byte string, which is then sent
             active_user = uuid_str
+        elif "UUID:" in uuid:
+            if not verify_user(uuid[5:]):
+                conn.send("not_verified")
+                conn.close()
+                return
+            else:
+                conn.send("verified")
+                active_user = uuid[5:]
+        else:
+            conn.send("not_verified")
+            conn.close()
+            return
 
-        if b'UUID:' in uuid_data:
-            conn.send(b'verified')
-            uuid = uuid_data[5:] # Removes "UUID:" part of string
-            active_user = uuid
+        
 
         # After opening sequence is finished, listens for many different types of incoming data
         while True:
@@ -104,7 +123,9 @@ def accept_connection(conn, addr):
             
             # If the incoming data is "down_list" send the downloads list to the client
             if data == b'down_list':
-                conn.sendall(b'a.txt,b.mp4')
+                file_list = get_file_list()
+                print(file_list)
+                conn.send("abc.txt")
 
             # If the incoming data is "connection_data" send back the ip that the user is using
             if data == b'connection_data':
@@ -153,6 +174,10 @@ def await_keypress(sock):
             open = False
             sock.close()
             break
+
+db.create_table("Users", "UUID TEXT PRIMARY KEY, pubkey TEXT")
+db.create_table("Files", "filename TEXT, host_uuid TEXT PRIMARY KEY")
+db.create_table("Hosts", "host_uuid TEXT PRIMARY KEY, ip TEXT")
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

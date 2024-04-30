@@ -9,80 +9,102 @@ from user import user as User
 
 class client:
     
-    class ClientConnection:
-        def __init__(self):
-            """
-            Initializes a ClientConnection object.
+    #class ClientConnection:
+    def __init__(self):
+        """
+        Initializes a ClientConnection object.
 
-            This method creates a socket object for the client and performs a key exchange with the server.
-            It generates a new RSA key pair if the server's public key is not available, and saves the client's
-            public and private keys to files. It then sends the client's public key to the server and receives
-            the server's public key in return.
+        This method creates a socket object for the client and performs a key exchange with the server.
+        It generates a new RSA key pair if the server's public key is not available, and saves the client's
+        public and private keys to files. It then sends the client's public key to the server and receives
+        the server's public key in return.
 
-            Note: The key pair is deleted from memory after the key exchange to prevent it from being accessed
-            by other programs.
+        Note: The key pair is deleted from memory after the key exchange to prevent it from being accessed
+        by other programs.
 
-            Args:
-                None
+        Args:
+            None
 
-            Returns:
-                None
-            """
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        Returns:
+            None
+        """
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+        if self.get_server_RSA_pubkey() is None:
+            self.keyPair = RSAKeyExchange()
             
-            if self.get_server_RSA_pubkey() is None:
-                self.keyPair = RSAKeyExchange()
-                
-                self.save_RSA_pubkey(self.keyPair.get_public_key())
-                self.save_RSA_privkey(self.keyPair.get_private_key())
-                # Delete the keypair from memory to prevent it from being accessed by other programs
-                self.keyPair = None
-                gc.collect()
+            self.save_RSA_pubkey(self.keyPair.get_public_key())
+            self.save_RSA_privkey(self.keyPair.get_private_key())
+            # Delete the keypair from memory to prevent it from being accessed by other programs
+            self.keyPair = None
+            gc.collect()
 
-                # Key exchange between client and server
-                self.sock.connect(('127.0.0.1', 12756))
+            # Key exchange between client and server
+            self.sock.connect(('127.0.0.1', 12756))
 
-                # Let server know you want to send your public key
-                self.sock.send(self.encode_message("public_key"))
+            # Let server know you want to send your public key
+            self.sock.send(self.to_bytes("public_key"))
 
-                msg = self.sock.recv(1024)
+            msg = self.sock.recv(1024)
 
-                if msg == b'send_public_key':
-                    # Encode clients public key and send it to the server
-                    self.sock.send(self.encode_message(self.get_RSA_pubkey()))
-                    # Recieve Server's public key and decode from server
-                    self.save_server_RSA_pubkey(self.decode_message(self.sock.recv(1024)))
-                else :
-                    print("Error in key exchange")
-                    self.sock.close()
-                    return
 
-                # now the client has the server's public key, and the server has the client's public key
-                # the client can now send the server a message encrypted with the server's public key
-                # and the server can decrypt it with its private key
-            else:
-                self.sock.connect(('127.0.0.1', 12756))
+            if msg == b'send_public_key':
+                # Encode clients public key and send it to the server
+                self.sock.send(self.to_bytes(self.get_RSA_pubkey().save_pkcs1().decode('utf-8')))
+                # Recieve Server's public key and decode from server
+                self.save_server_RSA_pubkey(self.to_string(self.sock.recv(1024)))
+            else :
+                print("Error in key exchange")
+                self.sock.close()
+                return
 
-                sendRsa(self.load_user_id(), self.get_server_RSA_pubkey(), self.sock) # Send UUID to server
-                msg = recieveRsa(self.get_RSA_privkey(), self.sock) # Recieve verification from server
+            # now the client has the server's public key, and the server has the client's public key
+            # the client can now send the server a message encrypted with the server's public key
+            # and the server can decrypt it with its private key
+            uuid = self.sock.recv(1024)
+            decrypted_uuid = self.decode_message(uuid)
+            self.save_user_id(decrypted_uuid)
 
-                if msg == b'UUID_recived':
-                    print("UUID Recived by server")
-                else:
-                    print("Error in UUID exchange")
-                    self.sock.close()
-                    return
+        else:
+            self.sock.connect(('127.0.0.1', 12756))
+            # Encrypt the message with the server's public key
+            uuid_request = rsa.encrypt("UUID_request", self.get_server_RSA_pubkey())
+            self.sock.send(uuid_request)
+
+            msg = self.sock.recv(1024)
+            privkey = self.get_RSA_privkey()
+            print(privkey)
+            decrypted_msg = rsa.decrypt(msg, self.get_RSA_privkey())
+
+            uuid = self.sock.recv(1024)
+            decrypted_uuid = self.decode_message(uuid)
+            self.save_user_id(decrypted_uuid)
+
+        self.sock.close()
+
 
         
 
 
-    # Will encode the message with whatever encoding we decide on, currently only turns a string into a byte string
-    def encode_message(self, message):
+    # Turns a string into a byte string
+    def to_bytes(self, message):
         return message.encode()
+    
+    # Encodes the message with the connected users public key
+    # Remember NOT TO ENCRYPT WITH OWN PUBKEY, encrypt with peers pukey
+    def encode_message(self, pubkey, message):
+        return rsa.encrypt(message, pubkey)
 
-    # Will decode the message with whatever encoding we decide on, currently turns byte string into string
-    def decode_message(self, message):
+    # Turns byte string into string
+    def to_string(self, message):
         return message.decode("utf-8")
+
+    # Decodes the message using our private key
+    def decode_message(self, message):
+        privkey = self.get_RSA_privkey()
+        print(privkey)
+        print(message)
+        return rsa.decrypt(message, self.get_RSA_privkey())
 
     # Saves user id to keyring
     def save_user_id(self, user_id):
@@ -94,19 +116,29 @@ class client:
 
     # Saves public key to keyring
     def save_RSA_pubkey(self, pubkey):
-        keyring.set_password("p2p", "pubkey", pubkey)
+        pubkey_pem = pubkey.save_pkcs1().decode('utf-8')
+        keyring.set_password("p2p", "pubkey", pubkey_pem)
 
     # Saves private key to keyring
     def save_RSA_privkey(self, privkey):
-        keyring.set_password("p2p", "privkey", privkey)
+        privkey_pem = privkey.save_pkcs1().decode('utf-8')
+        keyring.set_password("p2p", "privkey", privkey_pem)
 
     # Gets public key from keyring
     def get_RSA_pubkey(self):
-        return keyring.get_password("p2p", "pubkey")
+        key_string = keyring.get_password("p2p", "pubkey")
+        if key_string is None:
+            return None
+        else:
+            return rsa.key.PublicKey.load_pkcs1(key_string)
 
     # Gets private key from keyring
     def get_RSA_privkey(self):
-        return keyring.get_password("p2p", "privkey")
+        key_string = keyring.get_password("p2p", "privkey")
+        if key_string is None:
+            return None
+        else:
+            return rsa.key.PrivateKey.load_pkcs1(key_string)
     
     # Saves server public key to keyring
     def save_server_RSA_pubkey(self, pubkey):
@@ -114,50 +146,38 @@ class client:
 
     # Gets server public key from keyring
     def get_server_RSA_pubkey(self):
-        return keyring.get_password("p2p", "server_pubkey")
+        key_string = keyring.get_password("p2p", "server_pubkey")
+        print(key_string)
+        if key_string is None:
+            return None
+        else:
+            return rsa.key.PublicKey.load_pkcs1(key_string)
 
     # Private Method:
     # Connects to server, returns True if connection was successful, False if there were issues
     def __connect_to_server(self):
 
         if self.load_user_id() is None:
-            self.keyExchange()
+            self.__init__()
         try:
             # connects to server and recieves data
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect(('127.0.0.1', 12756))
-            data = self.sock.recv(1024)
 
-            
-            # Decodes the incoming message and checks if it is equal to the secure code, in which case it continues
-            if self.decode_message(data) != "secure_code":
-                self.sock.close()
-                return False
-            
             # Gets user id and sends it to the server, if there is no user id it requests one from the server
             user_id = self.load_user_id()
-            if user_id is None:
-                # Sends message of no user id
-                message = self.encode_message("first time user") #Encodes as byte string
-                self.sock.send(message)
+            # Sends message with the uuid to the server
+            message = self.encode_message("UUID:{user_id}")
+            self.sock.send(message)
 
-                # Recieves user ID and saves it to the keyring
-                uuid_data = self.sock.recv(1024)
-                uuid = self.decode_message(uuid_data)
-                self.save_user_id(uuid)
-            else:
-                # Sends message with the uuid to the server
-                message = self.encode_message("UUID:{user_id}")
-                self.sock.send(message)
-
-                # Recieves verification, if not verified closes connection
-                verification_data = self.sock.recv(1024)
-                verification = self.decode_message(verification_data)
-                if "verified" not in verification:
-                    #print("Unverified")
-                    #self.sock.close()
-                    return False
-            
+            # Recieves verification, if not verified closes connection
+            verification_data = self.sock.recv(1024)
+            verification = self.decode_message(verification_data)
+            if "not_verified" in verification:
+                print("Unverified")
+                self.sock.close()
+                return False
+        
             return True
         except Exception as e:
             print(e)
@@ -165,12 +185,9 @@ class client:
             return False
     
     
-        
-        
-
 
     def __request_connection_data(self):
-        self.sock.send(self.encode_message("connection_data"))
+        self.sock.send(self.encode_message(self.get_server_RSA_pubkey, "connection_data"))
         data = self.sock.recv(1024)
         if not data:
             return
