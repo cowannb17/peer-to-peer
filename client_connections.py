@@ -61,30 +61,17 @@ class client:
             # now the client has the server's public key, and the server has the client's public key
             # the client can now send the server a message encrypted with the server's public key
             # and the server can decrypt it with its private key
-            uuid = self.sock.recv(1024)
-            decrypted_uuid = self.decode_message(uuid)
-            self.save_user_id(decrypted_uuid)
+            uuid = recieveRsa(self.get_RSA_privkey(), self.sock)
+            self.save_user_id(uuid)
 
         else:
             self.sock.connect(('127.0.0.1', 12756))
-            # Encrypt the message with the server's public key
-            uuid_request = rsa.encrypt("UUID_request", self.get_server_RSA_pubkey())
-            self.sock.send(uuid_request)
 
-            msg = self.sock.recv(1024)
-            privkey = self.get_RSA_privkey()
-            print(privkey)
-            decrypted_msg = rsa.decrypt(msg, self.get_RSA_privkey())
-
-            uuid = self.sock.recv(1024)
-            decrypted_uuid = self.decode_message(uuid)
-            self.save_user_id(decrypted_uuid)
+            sendRsa(self.load_user_id(), "UUID_request", self.sock) # Send UUID to server
+            uuid = recieveRsa(self.get_RSA_privkey(), self.sock) # Recieve verification from server
+            self.save_user_id(uuid)
 
         self.sock.close()
-
-
-        
-
 
     # Turns a string into a byte string
     def to_bytes(self, message):
