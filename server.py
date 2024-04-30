@@ -1,5 +1,6 @@
 # Code for server client of peer-to-peer system
 import rsa
+from messageMethods import sendRsa, recieveRsa
 import msvcrt
 import socket
 import threading
@@ -70,14 +71,13 @@ def accept_connection(conn, addr):
             pubKeyString = f'{pubkey_pem}'
             conn.sendall(pubKeyString.encode())
 
+            # Now that keys have been exchanged, send the client a UUID
+
             uuid_str = create_uuid()
-            uuid_message = rsa.encrypt(uuid_str.encode(), client_pubkey)
-            conn.send(uuid_message) # .encode creates a byte string, which is then sent
+            sendRsa(uuid_str, client_pubkey, conn) # Send UUID to client
+            
             active_user = uuid_str
             add_user(uuid_str, client_pubkey_pem)
-
-            # Listen for encrypted uuid to arrive
-            msg = conn.recv(1024)
 
 
         # If the client is not a first time user, then the client is a returning user
