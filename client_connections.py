@@ -1,6 +1,6 @@
 import gc
 import socket
-
+from messageMethods import sendRsa, recieveRsa
 import rsa
 from RSAKeyExchange import RSAKeyExchange
 import keyring
@@ -47,6 +47,7 @@ class client:
 
             msg = self.sock.recv(1024)
 
+
             if msg == b'send_public_key':
                 # Encode clients public key and send it to the server
                 self.sock.send(self.to_bytes(self.get_RSA_pubkey().save_pkcs1().decode('utf-8')))
@@ -80,6 +81,7 @@ class client:
             self.save_user_id(decrypted_uuid)
 
         self.sock.close()
+
 
         
 
