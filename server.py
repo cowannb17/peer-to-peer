@@ -47,16 +47,12 @@ def get_uuid_pubkey(db, uuid):
 def get_user_id(db, uuid):
     return db.select_data("Users", ["UUID"], f"UUID='{uuid}'")[0][0]
 
-def add_file(db, filename, uuid):
-    db.insert_data("Files", (filename, uuid))
 
 def get_file_list(db):
     result = db.select_data("Files", "filename")[0]
     print(result)
     return result[0]
 
-def add_host(db, uuid, ip):
-    db.insert_data("Hosts", (uuid, ip))
 
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
