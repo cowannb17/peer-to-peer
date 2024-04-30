@@ -117,7 +117,9 @@ class peer:
     def send_file(self, conn, addr, file_index, peer_pubkey):
         path_to_file = self.hosted_files[file_index]
         file = open(path_to_file, 'rb')
-        sendRsa(file.read(), peer_pubkey, conn)
+        # Convert file to a string
+        fileContentsAsString = file.read().decode('utf-8')
+        sendRsa(fileContentsAsString, peer_pubkey, conn)
         #try:
         #    while True:
         #        buffer = b''
