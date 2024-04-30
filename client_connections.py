@@ -150,7 +150,7 @@ class client:
                 self.save_user_id(uuid)
             else:
                 # Sends message with the uuid to the server
-                message = self.encode_message("UUID: {user_id}")
+                message = self.encode_message("UUID:{user_id}")
                 self.sock.send(message)
 
                 # Recieves verification, if not verified closes connection

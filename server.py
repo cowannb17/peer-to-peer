@@ -3,7 +3,7 @@ import msvcrt
 import socket
 import threading
 import uuid as UUID
-import sqlite3
+from database import database
 
 import rsa
 
@@ -27,10 +27,6 @@ def checkKeys():
     return public_key, private_key
 
 server_public_key, server_private_key = checkKeys()
-
-
-
-from database import database
 
 db = database()
 
@@ -61,7 +57,7 @@ def accept_connection(conn, addr):
         # Decrypt the UUID with the server's private key
         uuid = rsa.decrypt(encrypted_uuid, server_public_key)
         uuid = uuid.decode('utf-8')
-        print(f"UUID: {uuid}")
+        print(f"UUID:{uuid}")
 
 
         
@@ -78,7 +74,7 @@ def accept_connection(conn, addr):
             return
         
         # Checks to see if the user is either a first time user or that the uuid is sent with correct formatting
-        if b'UUID: ' not in uuid_data and b'first time user' not in uuid_data:
+        if b'UUID:' not in uuid_data and b'first time user' not in uuid_data:
             conn.close()
             return
         
@@ -93,9 +89,9 @@ def accept_connection(conn, addr):
             conn.send(uuid_str.encode()) # .encode creates a byte string, which is then sent
             active_user = uuid_str
 
-        if b'UUID: ' in uuid_data:
+        if b'UUID:' in uuid_data:
             conn.send(b'verified')
-            uuid = uuid_data[6:] # Removes "UUID: " part of string
+            uuid = uuid_data[5:] # Removes "UUID:" part of string
             active_user = uuid
 
         # After opening sequence is finished, listens for many different types of incoming data
