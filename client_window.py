@@ -73,7 +73,7 @@ def select_location_frame(file_list):
         # Sets up dropdown box which selects the IP of the hosts
         combo = ttk.Combobox(location_selector_frame, state="readonly")
         # Gets IP from list of hosts
-        combo['values'] = file[1]
+        combo['values'] = file
         # Sets selection to first person
         combo.current(0)
         combo.grid(column=1, row=i)
@@ -112,22 +112,10 @@ def request_downloads():
     # Gets list of users who have the target downloads
     download_users = client.get_download_users(checked_downloads)
 
-    file_tuple_list = []
-    i = 0
-
-    for user_list in download_users.split("],"):
-        if user_list[-1:] != "]":
-            user_list += "]"
-        
-        # Convert list from string literal to actual list
-        user_list = ast.literal_eval(user_list)
-
-        # Insert tuple of file name and list of users who offer it into a list
-        file_tuple_list.append((checked_downloads.split(",")[i], user_list))
-        i += 1
+    host_list = download_users.split(",")
     
     clearFrame()
-    select_location_frame(file_tuple_list)
+    select_location_frame(host_list)
     
 
 
