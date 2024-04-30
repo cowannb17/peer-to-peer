@@ -16,8 +16,7 @@ def sendRsa(message: str, publicKey: rsa.PublicKey, socket: socket.socket):
         fullEncryptedMessage += encryptedMessage
         # socket.sendall(encryptedMessage)
     
-    sendRsa(fullEncryptedMessage, publicKey, socket) # Send a message to indicate the end of the file
-
+    socket.sendall(fullEncryptedMessage)
 
 def recieveRsa(privateKey: rsa.PrivateKey, socket: socket.socket):
     fullEncryptedMessage = socket.recv(1024)
