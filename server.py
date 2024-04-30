@@ -27,40 +27,40 @@ def checkKeys():
 
 server_public_key, server_private_key = checkKeys()
 
-db = database()
+db_init = database()
 
 def create_uuid():
     return str(UUID.uuid4())
 
-def verify_user(uuid):
-    data = db.execute_select(f"SELECT UUID FROM Users WHERE UUID LIKE {uuid}")
-    print(data)
+def verify_user(db, uuid):
+    data = db.select_data("Users", "uuid")
+    result = any(uuid == value[0] for value in data) # Checks to see if the uuid is in the list of UUIDs
+    return result
+
+def add_user(db, uuid, pubkey):
+    db.insert_data("Users", "'{}', '{}'".format(uuid, pubkey))
+
+def get_uuid_pubkey(db, uuid):
+    data = db.execute_select("SELECT pubkey FROM Users WHERE UUID LIKE '{}'".format(uuid))[0][0]
     return data
 
-def add_user(uuid, pubkey):
-    db.execute_insert(f"INSERT INTO Users VALUES ({uuid}, {pubkey})")
-
-def get_uuid_pubkey(uuid):
-    data = db.execute_select(f"SELECT pubkey FROM Users WHERE UUID LIKE {uuid}")
-    print(data)
-    return data
-
-def get_user_id(uuid):
+def get_user_id(db, uuid):
     return db.select_data("Users", ["UUID"], f"UUID='{uuid}'")[0][0]
 
-def add_file(filename, uuid):
+def add_file(db, filename, uuid):
     db.insert_data("Files", (filename, uuid))
 
-def get_file_list():
-    result = db.select_data("Files", ["DISTINCT filename"], "")
-    distinct_files = [row[0] for row in result]
-    return distinct_files
+def get_file_list(db):
+    result = db.select_data("Files", "filename")[0]
+    print(result)
+    return result[0]
 
-def add_host(uuid, ip):
+def add_host(db, uuid, ip):
     db.insert_data("Hosts", (uuid, ip))
 
 def accept_connection(conn, addr):
     print(f"Accepting connection from {addr}")
+    db = database()
     with conn:
         
         # Check if this is a first time user or a returning user
@@ -84,7 +84,7 @@ def accept_connection(conn, addr):
             sendRsa(uuid_str, client_pubkey, conn) # Send UUID to client
             
             active_user = uuid_str
-            add_user(uuid_str, client_pubkey_pem)
+            add_user(db, uuid_str, client_pubkey_pem)
 
             recieveRsa(server_private_key, conn)
 
@@ -102,6 +102,8 @@ def accept_connection(conn, addr):
         
         # Decrypt the UUID with the server's private key
         print(encrypted_uuid)
+        if encrypted_uuid == b'public_key':
+            return
         uuid = rsa.decrypt(encrypted_uuid, server_private_key)
         uuid = uuid.decode('utf-8')
         if uuid == "UUID_request":
@@ -109,15 +111,16 @@ def accept_connection(conn, addr):
             sendRsa(uuid_str, client_pubkey, conn) # Send UUID to client
             active_user = uuid_str
         elif "UUID:" in uuid:
-            if not verify_user(uuid[5:]):
-                sendRsa("not_verified", client_pubkey, conn)
+            if not verify_user(db, uuid[5:]):
+                #sendRsa("not_verified", client_pubkey, conn)
                 conn.close()
                 return
             else:
+                client_pubkey = rsa.key.PublicKey.load_pkcs1(get_uuid_pubkey(db, uuid[5:]))
                 sendRsa("verified", client_pubkey, conn)
                 active_user = uuid[5:]
         else:
-            sendRsa("not_verified", client_pubkey, conn)
+            #sendRsa("not_verified", client_pubkey, conn)
             conn.close()
             return
 
@@ -133,14 +136,14 @@ def accept_connection(conn, addr):
             
             # If the incoming data is "down_list" send the downloads list to the client
             if data == 'down_list':
-                file_list = get_file_list()
+                file_list = get_file_list(db)
                 print(file_list)
                 sendRsa(str(file_list), client_pubkey, conn) # Send file list to client
                 #might neen changes
             # If the incoming data is "connection_data" send back the ip that the user is using
             if data == 'connection_data':
                 ip = f"{addr[0]}"
-                sendRsa(ip.encode(), client_pubkey, conn)
+                sendRsa(ip, client_pubkey, conn)
 
             # If the incoming data is "request_downloads" get the list of downloads requested and send the connection info of the files to the user
             if data == 'request_downloads':
@@ -173,7 +176,7 @@ def accept_connection(conn, addr):
                 conn.close()
                 break
 
-            print(data)
+            #print(data)
 
 
 # Allows for closing of socket while it is still listening, waits for 'Ctrl-C' press then closes socket
@@ -185,9 +188,11 @@ def await_keypress(sock):
             sock.close()
             break
 
-db.create_table("Users", "UUID TEXT PRIMARY KEY, pubkey TEXT")
-db.create_table("Files", "filename TEXT, host_uuid TEXT PRIMARY KEY")
-db.create_table("Hosts", "host_uuid TEXT PRIMARY KEY, ip TEXT")
+db_init.create_table("Users", "UUID, pubkey")
+db_init.create_table("Files", "filename, host_uuid")
+db_init.create_table("Hosts", "host_uuid, ip")
+db_init.insert_data("Files", "'a.txt', 'none'")
+db_init.insert_data("Hosts", "'none', '127.0.0.1'")
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
