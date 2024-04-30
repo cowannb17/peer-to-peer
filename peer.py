@@ -28,7 +28,7 @@ class peer:
     def start_downloads(self):
         for index, file in enumerate(self.requestedFiles):
             ip = self.hosts[index]
-            download = self.start_download(self, ip, file)
+            download = self.start_download(ip, file)
             try:
                 while True:
                     size = next(download)
