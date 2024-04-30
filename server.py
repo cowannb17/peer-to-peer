@@ -82,16 +82,16 @@ def accept_connection(conn, addr):
 
         # If the client is not a first time user, then the client is a returning user
         # The client will send their UUID to the server encrypted with the server's public key
-        if not msg:
-            conn.close()
-            return
 
 
         # Recieve UUID from client
         encrypted_uuid = msg
+
+        if not encrypted_uuid:
+            return
         
         # Decrypt the UUID with the server's private key
-        uuid = rsa.decrypt(encrypted_uuid, server_public_key)
+        uuid = rsa.decrypt(encrypted_uuid, server_private_key)
         uuid = uuid.decode('utf-8')
         if uuid == "UUID_request":
             uuid_str = create_uuid()

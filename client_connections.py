@@ -95,8 +95,6 @@ class client:
     # Decodes the message using our private key
     def decode_message(self, message):
         privkey = self.get_RSA_privkey()
-        print(privkey)
-        print(message)
         return rsa.decrypt(message, self.get_RSA_privkey())
 
     # Saves user id to keyring
@@ -140,7 +138,6 @@ class client:
     # Gets server public key from keyring
     def get_server_RSA_pubkey(self):
         key_string = keyring.get_password("p2p", "server_pubkey")
-        print(key_string)
         if key_string is None:
             return None
         else:
