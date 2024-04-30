@@ -62,18 +62,19 @@ def accept_connection(conn, addr):
             # Send message to client requesting public key
             conn.sendall(b'send_public_key')
             # Recieve public key from client
-            client_pubkey = conn.recv(1024).decode('utf-8')
-            
+            client_pubkey_pem = conn.recv(1024).decode('utf-8')
+            client_pubkey = rsa.key.PublicKey.load_pkcs1(client_pubkey_pem)
+
             # send the server's public key to the client
-            pubKeyString = f'{server_public_key}'
+            pubkey_pem = server_public_key.save_pkcs1().decode('utf-8')
+            pubKeyString = f'{pubkey_pem}'
             conn.sendall(pubKeyString.encode())
 
-            # TODO: Assign UUID to the client
             uuid_str = create_uuid()
-            uuid_message = rsa.encrypt(uuid_str, client_pubkey)
+            uuid_message = rsa.encrypt(uuid_str.encode(), client_pubkey)
             conn.send(uuid_message) # .encode creates a byte string, which is then sent
             active_user = uuid_str
-            add_user(uuid_str, client_pubkey)
+            add_user(uuid_str, client_pubkey_pem)
 
             # Listen for encrypted uuid to arrive
             msg = conn.recv(1024)

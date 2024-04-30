@@ -71,6 +71,8 @@ class client:
             self.sock.send(uuid_request)
 
             msg = self.sock.recv(1024)
+            privkey = self.get_RSA_privkey()
+            print(privkey)
             decrypted_msg = rsa.decrypt(msg, self.get_RSA_privkey())
 
             uuid = self.sock.recv(1024)
@@ -97,6 +99,9 @@ class client:
 
     # Decodes the message using our private key
     def decode_message(self, message):
+        privkey = self.get_RSA_privkey()
+        print(privkey)
+        print(message)
         return rsa.decrypt(message, self.get_RSA_privkey())
 
     # Saves user id to keyring
@@ -120,12 +125,18 @@ class client:
     # Gets public key from keyring
     def get_RSA_pubkey(self):
         key_string = keyring.get_password("p2p", "pubkey")
-        return rsa.key.PublicKey.load_pkcs1(key_string)
+        if key_string is None:
+            return None
+        else:
+            return rsa.key.PublicKey.load_pkcs1(key_string)
 
     # Gets private key from keyring
     def get_RSA_privkey(self):
         key_string = keyring.get_password("p2p", "privkey")
-        return rsa.key.PrivateKey.load_pkcs1(key_string)
+        if key_string is None:
+            return None
+        else:
+            return rsa.key.PrivateKey.load_pkcs1(key_string)
     
     # Saves server public key to keyring
     def save_server_RSA_pubkey(self, pubkey):
@@ -134,6 +145,7 @@ class client:
     # Gets server public key from keyring
     def get_server_RSA_pubkey(self):
         key_string = keyring.get_password("p2p", "server_pubkey")
+        print(key_string)
         if key_string is None:
             return None
         else:
@@ -173,7 +185,7 @@ class client:
     
 
     def __request_connection_data(self):
-        self.sock.send(self.encode_message("connection_data"))
+        self.sock.send(self.encode_message(self.get_server_RSA_pubkey, "connection_data"))
         data = self.sock.recv(1024)
         if not data:
             return
