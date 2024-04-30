@@ -7,7 +7,7 @@ import threading
 import uuid as UUID
 from database import database
 
-max_threads = 3
+max_threads = 10
 
 def checkKeys():
     # Check if the keys are already generated
@@ -97,11 +97,13 @@ def accept_connection(conn, addr):
             return
         
         # Decrypt the UUID with the server's private key
-        print(encrypted_uuid)
         if encrypted_uuid == b'public_key':
             return
+        
         uuid = rsa.decrypt(encrypted_uuid, server_private_key)
         uuid = uuid.decode('utf-8')
+        
+        
         if uuid == "UUID_request":
             uuid_str = create_uuid()
             sendRsa(uuid_str, client_pubkey, conn) # Send UUID to client
@@ -161,13 +163,13 @@ def accept_connection(conn, addr):
                 conn.send(packet.encode())
 
             # If the incoming data is "host_files" get the list of files the user wants to host
-            if data == b'host_files':
+            if data == 'host_files':
                 file_string = conn.recv(1024)
                 # add files to the database
                 print(file_string)
 
             # If the incoming data is "close_connection" end the connection to the client
-            if data == b'close_connection':
+            if data == 'close_connection':
                 print(f"Closing connection from {addr}")
                 conn.close()
                 break
@@ -215,7 +217,7 @@ while open:
         conn.send(b'Connection Refused')
         conn.close()
         continue
-
+    
     # Creates a thread to deal with the incoming connection
     thread = threading.Thread(target=accept_connection, args=(conn, addr,))
     thread.start()
