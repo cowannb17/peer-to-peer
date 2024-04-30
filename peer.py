@@ -4,6 +4,7 @@ import socket
 import keyring
 import threading
 from user import user as User
+from messageMethods import sendRsa, recieveRsa
 
 class peer:
     def __init__(self, user : User):

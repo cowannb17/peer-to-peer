@@ -157,10 +157,9 @@ def accept_connection(conn, addr):
                 packet = ''
 
                 for i in range(0, len(download_data.split(","))):
-                    packet += '[(\'127.0.0.1\', 12756)],'
+                    packet += '127.0.0.1,'
 
                 packet = packet[:-1]
-                packet = "[(\'1.2.3.4\', 12345)],[(\'5.6.7.8\', 61234), (\'9.0.1.2\', 56789)]"
                 sendRsa(packet, client_pubkey, conn)
 
             # If the incoming data is "host_files" get the list of files the user wants to host

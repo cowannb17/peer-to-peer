@@ -222,7 +222,7 @@ class client:
         # Recieves list of users who will host the requested file(s)
         data = recieveRsa(self.get_RSA_privkey(), self.sock)
 
-        sendRsa("close_connection", self.sock)
+        sendRsa("close_connection", self.get_server_RSA_pubkey(), self.sock)
         self.sock.detach()
         return data
     
