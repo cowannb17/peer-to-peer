@@ -164,7 +164,7 @@ def accept_connection(conn, addr):
 
             # If the incoming data is "host_files" get the list of files the user wants to host
             if data == 'host_files':
-                file_string = file_string = recieveRsa(server_private_key, conn)
+                file_string = recieveRsa(server_private_key, conn)
                 for file in file_string.split(","):
                     add_file(db, file, active_user)
                 # add files to the database

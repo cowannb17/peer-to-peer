@@ -1,5 +1,5 @@
-import ast
 import time
+import threading
 import tkinter as tk
 from peer import peer as Peer
 from tkinter import ttk, filedialog
@@ -47,13 +47,13 @@ def start_downloads(file_list):
     peer = Peer(client.user)
     peer.configure_downloads(files, peer_selections)
     downloads = peer.start_downloads()
-    for file in files:
-        try:
-            while True:
-                size = next(downloads)
-                break
-        except StopIteration:
-            return
+    #for file in files:
+    #    try:
+    #        while True:
+    #            size = next(downloads)
+    #            break
+    #    except StopIteration:
+    #        return
         
 
 
@@ -73,7 +73,7 @@ def select_location_frame(file_list):
         # Sets up dropdown box which selects the IP of the hosts
         combo = ttk.Combobox(location_selector_frame, state="readonly")
         # Gets IP from list of hosts
-        combo['values'] = file
+        combo['values'] = file[1]
         # Sets selection to first person
         combo.current(0)
         combo.grid(column=1, row=i)
@@ -112,8 +112,10 @@ def request_downloads():
     # Gets list of users who have the target downloads
     download_users = client.get_download_users(checked_downloads)
 
-    host_list = download_users.split(",")
     
+    host_list = []
+    for index in range(0, len(download_users.split(","))):
+        host_list.append((checked_downloads.split(",")[index], download_users.split(",")[index]))
     clearFrame()
     select_location_frame(host_list)
     
@@ -170,6 +172,11 @@ def host_files(hosted_files_list):
     # Notifies the server that we are hosting the files, then sets up peer for hosting filse
     client.notify_of_hosting(hosted_files_list)
     peer.configure_hosting(hosted_files_list)
+    tk.Label(frame, text=f"Hosting:\n{hosted_files_list}").pack()
+    thread = threading.Thread(target=peer.start_listen)
+    thread.daemon = True
+    thread.start()
+
 
 # Removes the file to host from the frame
 def remove_file(file_frame, hosted_files, label, button):
