@@ -239,16 +239,20 @@ class peer:
 
     # Saves public key to keyring
     def save_RSA_pubkey(self, pubkey):
-        keyring.set_password("p2p", "pubkey", pubkey)
+        pubkey_pem = pubkey.save_pkcs1().encode('utf-8')
+        keyring.set_password("p2p", "pubkey", pubkey_pem)
 
     # Saves private key to keyring
     def save_RSA_privkey(self, privkey):
-        keyring.set_password("p2p", "privkey", privkey)
+        privkey_pem = privkey.save_pkcs1().encode('utf-8')
+        keyring.set_password("p2p", "privkey", privkey_pem)
 
     # Gets public key from keyring
     def get_RSA_pubkey(self):
-        return keyring.get_password("p2p", "pubkey")
+        key_string = keyring.get_password("p2p", "pubkey")
+        return rsa.key.PublicKey.load_pkcs1(key_string)
 
     # Gets private key from keyring
     def get_RSA_privkey(self):
-        return keyring.get_password("p2p", "privkey")
+        key_string = keyring.get_password("p2p", "privkey")
+        return rsa.key.PrivateKey.load_pkcs1(key_string)
