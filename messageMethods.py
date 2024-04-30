@@ -5,7 +5,7 @@ def sendRsa(message: string, publicKey: key.PublicKey, socket: socket.socket):
     encryptedMessage = rsa.encrypt(encodedMessage, publicKey)
     socket.sendall(encryptedMessage)
 
-def recieveRsa(privateKey, socket):
+def recieveRsa(privateKey: key.PrivateKey, socket: socket.socket):
     encryptedMessage = socket.recv(1024)
     decryptedMessage = rsa.decrypt(encryptedMessage, privateKey)
     return decryptedMessage.decode('utf-8')
