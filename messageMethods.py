@@ -14,7 +14,6 @@ def sendRsa(message: str, publicKey: rsa.PublicKey, socket: socket.socket):
         chunk = encodedMessage[i:i+53]
         encryptedMessage = rsa.encrypt(chunk, publicKey)
         fullEncryptedMessage += encryptedMessage
-        # socket.sendall(encryptedMessage)
     
     socket.sendall(fullEncryptedMessage)
 
