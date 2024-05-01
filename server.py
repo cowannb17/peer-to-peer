@@ -29,6 +29,7 @@ server_public_key, server_private_key = checkKeys()
 
 db_init = database()
 
+
 def create_uuid():
     return str(UUID.uuid4())
 
@@ -55,6 +56,18 @@ def get_file_list(db):
     result = db.select_data("Files", "filename")[0]
     print(result)
     return result[0]
+
+def clear_file_list(db):
+    """
+    Clears the file list in the database.
+
+    Parameters:
+    - db: The database object used to execute the SQL query.
+
+    Returns:
+    None
+    """
+    db.execute_insert("DELETE FROM Files")
 
 
 def accept_connection(conn, addr):
@@ -191,8 +204,12 @@ def await_keypress(sock):
 db_init.create_table("Users", "UUID, pubkey")
 db_init.create_table("Files", "filename, host_uuid")
 db_init.create_table("Hosts", "host_uuid, ip")
-db_init.insert_data("Files", "'a.txt', 'none'")
-db_init.insert_data("Hosts", "'none', '127.0.0.1'")
+
+# Since server is starting fresh, clear the file list
+clear_file_list(db_init)
+
+#db_init.insert_data("Files", "'a.txt', 'none'")
+#db_init.insert_data("Hosts", "'none', '127.0.0.1'")
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -216,7 +233,7 @@ while open:
     
     # If theads are at max, send a response "Connection Refused"
     if threading.active_count() > max_threads: # Active count includes main thread, so must use > rather than >=
-        conn.send(b'Connection Refused')
+        conn.send(b'Connection Refused') # may need to be changed to sendRsa
         conn.close()
         continue
     
