@@ -232,7 +232,7 @@ class client:
         file_names = [file.split("/")[-1] for file in files_to_host]
         print("Files to host: ", file_names)
         #one liner to add double quotes around each file name and put them in a single string
-        files = ','.join(['"' + file_name + '"' for file_name in file_names])
+        files = ':'.join([file_name for file_name in file_names])
         print("Files to host string: ", files)
         
         # Connects to server
