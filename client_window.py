@@ -272,12 +272,18 @@ def download_progress_bar():
     progress = ttk.Progressbar(window, length=100, mode='determinate')
     progress.pack()
 
-    for i in range(100):
-        progress['value'] = i
-        window.update_idletasks()
-        time.sleep(0.5)
+    def progress_in_motion():
+        for i in range(100):
+            progress['value'] = i
+            window.update_idletasks()
+            time.sleep(0.5)
+            yield
+        progress['value'] = 100
 
-    progress['value'] = 100
+    return progress_in_motion
+
+progress_in = download_progress_bar()
+next(progress_in)
         
 # Renders the window
 w = root_window(client.first_connection())
