@@ -165,6 +165,7 @@ def accept_connection(conn, addr):
             # If the incoming data is "down_list" send the downloads list to the client
             if data == 'down_list':
                 file_list = get_file_list(db)
+                print("File list in down_list (server): ", file_list)
                 sendRsa(str(file_list), client_pubkey, conn) # Send file list to client
                 #might neen changes
             # If the incoming data is "connection_data" send back the ip that the user is using
@@ -192,14 +193,14 @@ def accept_connection(conn, addr):
             # If the incoming data is "host_files" get the list of files the user wants to host
             if data == 'host_files':
                 file_string = recieveRsa(server_private_key, conn)
+                print ("File string in host_files (server): ", file_string)
                 for file in file_string.split(","):
                     # Strip the file of double quotes
-                    file = file.strip("'")
-                    print("File string in host_files (server): ", file)
+                    file = file.strip("\"")
+                    print("File string in host_files (server for): ", file)
                     add_file(db, file, active_user)
                 
                 # add files to the database
-                print("File string in host_files (server): ", file_string)
 
             # If the incoming data is "close_connection" end the connection to the client
             if data == 'close_connection':
