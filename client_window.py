@@ -1,4 +1,5 @@
-import ast
+import time
+import threading
 import tkinter as tk
 from peer import peer as Peer
 from tkinter import ttk, filedialog
@@ -39,12 +40,24 @@ def find_combo_boxes(parent):
     return combo_boxes
 
 def start_downloads(file_list):
-    selection = [combo.get() for combo in find_combo_boxes(window)]
+    peer_selections = [combo.get() for combo in find_combo_boxes(window)]
     files = [file[0] for file in file_list]
     clearFrame()
     
     global peer
     peer = Peer(client.user)
+    peer.configure_downloads(files, peer_selections)
+    downloads = peer.start_downloads()
+    #for file in files:
+    #    try:
+    #        while True:
+    #            size = next(downloads)
+    #            break
+    #    except StopIteration:
+    #        return
+        
+
+
 
 
 def select_location_frame(file_list):
@@ -100,22 +113,12 @@ def request_downloads():
     # Gets list of users who have the target downloads
     download_users = client.get_download_users(checked_downloads)
 
-    file_tuple_list = []
-    i = 0
-
-    for user_list in download_users.split("],"):
-        if user_list[-1:] != "]":
-            user_list += "]"
-        
-        # Convert list from string literal to actual list
-        user_list = ast.literal_eval(user_list)
-
-        # Insert tuple of file name and list of users who offer it into a list
-        file_tuple_list.append((checked_downloads.split(",")[i], user_list))
-        i += 1
     
+    host_list = []
+    for index in range(0, len(download_users.split(","))):
+        host_list.append((checked_downloads.split(",")[index], download_users.split(",")[index]))
     clearFrame()
-    select_location_frame(file_tuple_list)
+    select_location_frame(host_list)
     
 
 
@@ -170,6 +173,11 @@ def host_files(hosted_files_list):
     # Notifies the server that we are hosting the files, then sets up peer for hosting filse
     client.notify_of_hosting(hosted_files_list)
     peer.configure_hosting(hosted_files_list)
+    tk.Label(frame, text=f"Hosting:\n{hosted_files_list}").pack()
+    thread = threading.Thread(target=peer.start_listen)
+    thread.daemon = True
+    thread.start()
+
 
 # Removes the file to host from the frame
 def remove_file(file_frame, hosted_files, label, button):

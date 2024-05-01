@@ -1,5 +1,5 @@
 class user:
-    def __init__(self, userID, userIP):
+    def __init__(self, userID, userIP): # currently these parameters are not used
         self.userID = None
         self.userIP = None
         self.requestedFiles = []
