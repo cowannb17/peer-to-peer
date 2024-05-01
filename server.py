@@ -53,9 +53,11 @@ def get_user_id(db, uuid):
 
 
 def get_file_list(db):
-    result = db.select_data("Files", "filename")[0]
-    print(result)
-    return result[0]
+    results = db.select_data("Files", "filename") # Gets all the filenames from the database
+    filenames = [result[0] for result in results] # Converts the list of tuples to a list of strings
+    filenames = str(filenames)[1:-1] # Removes the brackets from the string
+    print("get_file_list result: ", filenames)
+    return filenames
 
 def clear_file_list(db):
     """
@@ -68,6 +70,18 @@ def clear_file_list(db):
     None
     """
     db.execute_insert("DELETE FROM Files")
+    
+def clear_host_list(db):
+    """
+    Clears the host list in the database.
+
+    Parameters:
+    - db: The database object used to execute the SQL query.
+
+    Returns:
+    None
+    """
+    db.execute_insert("DELETE FROM Hosts")
 
 
 def accept_connection(conn, addr):
@@ -151,7 +165,6 @@ def accept_connection(conn, addr):
             # If the incoming data is "down_list" send the downloads list to the client
             if data == 'down_list':
                 file_list = get_file_list(db)
-                print(file_list)
                 sendRsa(str(file_list), client_pubkey, conn) # Send file list to client
                 #might neen changes
             # If the incoming data is "connection_data" send back the ip that the user is using
@@ -160,6 +173,7 @@ def accept_connection(conn, addr):
                 sendRsa(ip, client_pubkey, conn)
 
             # If the incoming data is "request_downloads" get the list of downloads requested and send the connection info of the files to the user
+            #TODO: Implement this
             if data == 'request_downloads':
                 download_data = recieveRsa(server_private_key, conn)
                 # Send all users that offer the requested file to the user
@@ -179,9 +193,13 @@ def accept_connection(conn, addr):
             if data == 'host_files':
                 file_string = recieveRsa(server_private_key, conn)
                 for file in file_string.split(","):
+                    # Strip the file of double quotes
+                    file = file.strip("'")
+                    print("File string in host_files (server): ", file)
                     add_file(db, file, active_user)
+                
                 # add files to the database
-                print(file_string)
+                print("File string in host_files (server): ", file_string)
 
             # If the incoming data is "close_connection" end the connection to the client
             if data == 'close_connection':
@@ -205,10 +223,12 @@ db_init.create_table("Users", "UUID, pubkey")
 db_init.create_table("Files", "filename, host_uuid")
 db_init.create_table("Hosts", "host_uuid, ip")
 
-# Since server is starting fresh, clear the file list
+# Since server is starting fresh, clear the file and host lists
 clear_file_list(db_init)
+clear_host_list(db_init)
 
-#db_init.insert_data("Files", "'a.txt', 'none'")
+#db_init.insert_data("Files", "'a.txt', 'none'")  # Inserting some test data
+#db_init.insert_data("Files", "'b.txt', 'none'")
 #db_init.insert_data("Hosts", "'none', '127.0.0.1'")
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
