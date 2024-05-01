@@ -119,7 +119,7 @@ class peer:
         
 
 
-    def send_file(self, conn, addr, file_index, peer_pubkey):
+    def send_file(self, conn, addr, file_index, peer_pubkey): # addr is not used
         path_to_file = self.hosted_files[file_index]
         print(path_to_file)
         with open(path_to_file, 'r') as file:
