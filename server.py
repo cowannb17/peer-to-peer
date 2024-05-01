@@ -165,8 +165,10 @@ def accept_connection(conn, addr):
             # If the incoming data is "down_list" send the downloads list to the client
             if data == 'down_list':
                 file_list = get_file_list(db)
+                file_list = str(file_list).split(", ")
+                file_list = ':'.join([file.strip("'") for file in file_list])
                 print("File list in down_list (server): ", file_list)
-                sendRsa(str(file_list), client_pubkey, conn) # Send file list to client
+                sendRsa(str(file_list).strip("'"), client_pubkey, conn) # Send file list to client
                 #might neen changes
             # If the incoming data is "connection_data" send back the ip that the user is using
             if data == 'connection_data':
