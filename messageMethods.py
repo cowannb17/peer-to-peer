@@ -17,9 +17,19 @@ def sendRsa(message: str, publicKey: rsa.PublicKey, socket: socket.socket):
     
     socket.sendall(fullEncryptedMessage)
 
-def sendFileRsa(message: str, publicKey: rsa.PublicKey, sock: socket.socket):
-    sendRsa(message, publicKey, sock)
+def decrypt_message(fullEncryptedMessage: str, privateKey: rsa.PrivateKey):
+    if len(fullEncryptedMessage) <= 64:
+        decryptedMessage = rsa.decrypt(fullEncryptedMessage, privateKey)
+        return decryptedMessage
+    
+    # Message is too long, split it into chunks
+    fullDecryptedMessage = b""
+    for i in range(0, len(fullEncryptedMessage), 64):
+        chunk = fullEncryptedMessage[i:i+64]
+        decryptedMessage = rsa.decrypt(chunk, privateKey)
+        fullDecryptedMessage += decryptedMessage
 
+    return fullDecryptedMessage
 
 def recieveRsa(privateKey: rsa.PrivateKey, socket: socket.socket):
     fullEncryptedMessage = socket.recv(1024)
@@ -27,19 +37,24 @@ def recieveRsa(privateKey: rsa.PrivateKey, socket: socket.socket):
     if not fullEncryptedMessage:
         print("Error: No message recieved")
         return None
-    elif len(fullEncryptedMessage) <= 64:
-        decryptedMessage = rsa.decrypt(fullEncryptedMessage, privateKey)
-        return decryptedMessage.decode('utf-8')
-    
-    # Message is too long, split it into chunks
-    FullDecryptedMessage = b""
-    for i in range(0, len(fullEncryptedMessage), 64):
-        chunk = fullEncryptedMessage[i:i+64]
-        decryptedMessage = rsa.decrypt(chunk, privateKey)
-        FullDecryptedMessage += decryptedMessage
+
+    FullDecryptedMessage = decrypt_message(fullEncryptedMessage, privateKey)
 
     return FullDecryptedMessage.decode('utf-8')
 
 def recieveFileRsa(privateKey: rsa.PrivateKey, socket: socket.socket):
+    fullEncryptedMessage = b''
     while True:
-        encyrptedMessage = socket.recv(1024)
+        encryptedMessage = socket.recv(1024)
+        
+        if not encryptedMessage:
+            yield "end"
+            fullDecryptedMessage = decrypt_message(fullEncryptedMessage)
+            yield fullDecryptedMessage.decode('utf-8')
+            break
+
+        yield len(encryptedMessage)
+        fullEncryptedMessage += encryptedMessage
+
+
+
