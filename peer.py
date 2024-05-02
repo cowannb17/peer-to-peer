@@ -31,12 +31,17 @@ class peer:
             ip = self.hosts[index]
             print("Getting file {} from host {}".format(file, ip))
             download_progress = self.start_download(ip, file)
+            
+            yield file
 
             for percentage in download_progress:
+                
                 if percentage == "end":
+                    #print("Percentage Downloaded: 100")
                     yield 100
                     break
-                yield download_progress
+                #print("Percentage Downloaded:", percentage)
+                yield int(percentage)
         return 
 
 
@@ -81,6 +86,9 @@ class peer:
 
 
         recieved_filename, size = response.split(":")
+        # Changes data size to size it will be when it is encrypted
+        # ends up as a rough estimate but it is good enough for what we are doing
+        encrypted_size = int(int(size) * 64 / 53)
 
         # Asks the host peer for the file set by filename
         sendRsa(f"request_file:{filename}", peer_pubkey, sock)
@@ -104,14 +112,25 @@ class peer:
 
         # Gets number of recieved bytes from the recieveFileRsa function and gives how far along the download is (percentage wise) to the parent function
         total_recieved_bytes = 0
+        decrypted_recieved_file = ""
         for chunksize in recieved_file:
-            total_recieved_bytes += chunksize
-            yield (int(total_recieved_bytes) / int(size)) * 100 # Sends data upwards, like return but does not stop the method
+            if chunksize == "end":
+                # Once the stream of chunk lengths has ended, recieve the actual file data
+                decrypted_recieved_file = next(recieved_file)
+                break
+            elif int(chunksize) == 0:
+                continue
+            
+            total_recieved_bytes += int(chunksize)
+            
+            yield round(int(total_recieved_bytes) / int(encrypted_size) * 100) # Sends data upwards, like return but does not stop the method
+
+        recieved_file = decrypted_recieved_file
 
         # If the response was empty, end the connectiom
         if not recieved_file:
             print("CLIENT: No data received from host peer when receiving file")
-            sock.close()
+            #sock.close() # No need to close socket as it is closed by the host
             return
 
         # Gets path of current working directory of the script, and creates the downloaded file there
@@ -124,8 +143,8 @@ class peer:
             file.write(self.to_bytes(recieved_file))
 
         # Closes connection as the requested file has been received
-        sendRsa("close_connection", peer_pubkey, sock)
-        sock.close()
+        #sendRsa("close_connection", peer_pubkey, sock)
+        #sock.close()
         yield "end"
         return True
         
@@ -138,6 +157,8 @@ class peer:
         # Reads the file and sends it to the client peer
         with open(path_to_file, 'r') as file:
             sendRsa(file.read(), peer_pubkey, conn)
+
+        conn.close()
         
     # Sends the file to the peer who has requested it
     def init_connection(self, conn, addr):
@@ -209,7 +230,8 @@ class peer:
                     # Sends file
                     self.send_file(conn, addr, index, peer_pubkey)
 
-                    continue
+                    # File is sent, no need for the thread anymore
+                    break
                 elif request == "close_connection":
                     print(f"Closing connection from {addr}")
                     conn.close()

@@ -44,24 +44,28 @@ def start_downloads(file_list):
     clearFrame()
     
     tk.Label(frame, text="We're downloading your files now, don't go anywhere!").pack()
-    
+    downloads_frame = tk.Frame(frame)
+    progress = tk.IntVar()
+    progress_bar = ttk.Progressbar(downloads_frame, variable=progress, length=100, mode='determinate')
+    downloads_frame.pack()
 
     global peer
     peer = Peer(client.user)
     peer.configure_downloads(files, peer_selections)
     downloads = peer.start_downloads()
 
-    downloads_frame = tk.Frame(frame)
-    progress = tk.IntVar()
-    progress_bar = ttk.Progressbar(downloads_frame, variable=progress, length=100, mode='determinate')
+    current_label = ""
     for data in downloads:
         if type(data) == str:
-            tk.Label(downloads_frame, text=data).pack()
+            current_label = tk.Label(downloads_frame, text=f"{data}:")
+            current_label.pack()
             progress.set(0)
             progress_bar.pack()
             continue
         progress.set(data)
         if data == 100:
+            current_label['text'] += " Downloaded!"
+            progress.set(100)
             progress_bar.pack_forget()
 
     tk.Label(downloads_frame, text="All Files Downloaded!").pack()

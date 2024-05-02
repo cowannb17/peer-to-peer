@@ -47,14 +47,16 @@ def recieveFileRsa(privateKey: rsa.PrivateKey, socket: socket.socket):
     while True:
         encryptedMessage = socket.recv(1024)
         
+        yield len(encryptedMessage)
+        fullEncryptedMessage += encryptedMessage
+
         if not encryptedMessage:
             yield "end"
-            fullDecryptedMessage = decrypt_message(fullEncryptedMessage)
+            fullDecryptedMessage = decrypt_message(fullEncryptedMessage, privateKey)
             yield fullDecryptedMessage.decode('utf-8')
             break
 
-        yield len(encryptedMessage)
-        fullEncryptedMessage += encryptedMessage
+        
 
 
 
