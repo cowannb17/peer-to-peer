@@ -72,6 +72,10 @@ def clear_file_list(db):
     """
     db.execute_insert("DELETE FROM Files")
     
+def clear_file_list(db, uuid):
+    # Clear the file list for a specific user
+    db.execute_insert(f"DELETE FROM Files WHERE host_uuid LIKE '{uuid}'")
+    
 def clear_host_list(db):
     """
     Clears the host list in the database.
@@ -83,6 +87,10 @@ def clear_host_list(db):
     None
     """
     db.execute_insert("DELETE FROM Hosts")
+    
+def clear_host_list(db, uuid):
+    # Clear the host list for a specific user
+    db.execute_insert(f"DELETE FROM Hosts WHERE host_uuid LIKE '{uuid}'")
 
 
 def accept_connection(conn, addr):
@@ -196,8 +204,12 @@ def accept_connection(conn, addr):
                     # Strip the file of double quotes
                     add_file(db, file, active_user)
                 
-                # add files to the database
-
+            if data == 'stop_hosting':
+                # use active_user to clear the file list for the user
+                clear_file_list(db, active_user)
+                clear_host_list(db, active_user)
+                
+            
             # If the incoming data is "close_connection" end the connection to the client
             if data == 'close_connection':
                 print(f"Closing connection from {addr}")
