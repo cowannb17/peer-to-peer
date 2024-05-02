@@ -47,6 +47,8 @@ def start_downloads(file_list):
     peer = Peer(client.user)
     peer.configure_downloads(files, peer_selections)
     downloads = peer.start_downloads()
+    progress_bar = ttk.Progressbar(frame,length=100, mode='determinate')
+    progress_bar.pack()
     #for file in files:
     #    try:
     #        while True:

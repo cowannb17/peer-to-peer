@@ -17,6 +17,10 @@ def sendRsa(message: str, publicKey: rsa.PublicKey, socket: socket.socket):
     
     socket.sendall(fullEncryptedMessage)
 
+def sendFileRsa(message: str, publicKey: rsa.PublicKey, sock: socket.socket):
+    sendRsa(message, publicKey, sock)
+
+
 def recieveRsa(privateKey: rsa.PrivateKey, socket: socket.socket):
     fullEncryptedMessage = socket.recv(1024)
 
@@ -35,3 +39,7 @@ def recieveRsa(privateKey: rsa.PrivateKey, socket: socket.socket):
         FullDecryptedMessage += decryptedMessage
 
     return FullDecryptedMessage.decode('utf-8')
+
+def recieveFileRsa(privateKey: rsa.PrivateKey, socket: socket.socket):
+    while True:
+        encyrptedMessage = socket.recv(1024)
