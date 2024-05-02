@@ -42,7 +42,11 @@ def add_user(db, uuid, pubkey):
     db.insert_data("Users", "'{}', '{}'".format(uuid, pubkey))
 
 def add_file(db, filename, uuid):
+    print(filename)
     db.insert_data("Files", "'{}', '{}'".format(filename, uuid))
+
+def add_host(db, uuid, ip):
+    db.insert_data("Hosts", "'{}', '{}'".format(uuid, ip))
 
 def get_uuid_pubkey(db, uuid):
     data = db.execute_select("SELECT pubkey FROM Users WHERE UUID LIKE '{}'".format(uuid))[0][0]
@@ -53,12 +57,31 @@ def get_user_id(db, uuid):
 
 
 def get_file_list(db):
-    results = db.select_data("Files", "filename") # Gets all the filenames from the database
+    #results = db.select_data("Files", "filename") # Gets all the filenames from the database
+    results = db.execute_select("SELECT DISTINCT filename FROM Files") # Gets all the distinct filenames from the database
     filenames = [result[0] for result in results] # Converts the list of tuples to a list of strings
     filenames = str(filenames)[1:-1] # Removes the brackets from the string
     file_list = filenames.split(", ") # Creates a list of files from the file names
     file_list_sending_string = ':'.join([file.strip("'") for file in file_list]) # One liner to create a single string with files delimited by ":"
     return file_list_sending_string
+
+def get_host_list(db, file_list):
+    return_list = ""
+    for file in file_list.split(":"):
+        query = """
+            SELECT Hosts.ip 
+            FROM Hosts 
+            INNER JOIN Files ON Hosts.host_uuid = Files.host_uuid 
+            WHERE Files.filename = '{}'
+        """.format(file)
+        result = db.execute_select(query)
+        print(result)
+        host_list = [host[0] for host in result]
+        host_list = str(host_list)[1:-1]
+        host_list = host_list.split(", ") # Creates a list of files from the file names
+        host_list = ':'.join([host.strip("'") for host in host_list]) # One liner to create a single string with files delimited by ":"
+        return_list += host_list + "*" #Uses * as list delimeter
+    return return_list[:-1]
 
 def clear_all_files(db):
     """
@@ -182,27 +205,26 @@ def accept_connection(conn, addr):
 
             # If the incoming data is "request_downloads" get the list of downloads requested and send the connection info of the files to the user
             #TODO: Implement this
-            if data == 'request_downloads':
+            if data == 'request_file_hosts':
                 download_data = recieveRsa(server_private_key, conn)
                 # Send all users that offer the requested file to the user
-                # Send the data as ('127.0.0.1', 12345) for each user
+                # Send the data as '127.0.0.1 for each user
                 # Each file will have its own list as well e.g.
-                # [('127.0.0.1', 12345)],[('127.0.0.1', 12345),('127.0.0.1', 12345)]
+                # 127.0.0.1*127.0.0.1:127.0.0.1
+                # Uses * as a delmiteter between lists and : as a delimiter within lists
                 # File 1 has only a single host, file 2 has 2 hosts.
-                packet = ''
-
-                for i in range(0, len(download_data.split(","))):
-                    packet += '127.0.0.1,'
-
-                packet = packet[:-1]
+                packet = get_host_list(db, download_data)
                 sendRsa(packet, client_pubkey, conn)
 
             # If the incoming data is "host_files" get the list of files the user wants to host
             if data == 'host_files':
                 file_string = recieveRsa(server_private_key, conn)
                 for file in file_string.split(":"):
-                    # Strip the file of double quotes
+                    #Add file to database list of included files
                     add_file(db, file, active_user)
+                    #Add user to database list of current hosts
+                    ip, port = addr
+                    add_host(db, active_user, ip)
                 
             if data == 'stop_hosting':
                 # use active_user to clear the file list for the user
@@ -236,15 +258,15 @@ db_init.create_table("Hosts", "host_uuid, ip")
 clear_all_files(db_init)
 clear_all_hosts(db_init)
 
-#db_init.insert_data("Files", "'a.txt', 'none'")  # Inserting some test data
-#db_init.insert_data("Files", "'b.txt', 'none'")
-#db_init.insert_data("Hosts", "'none', '127.0.0.1'")
+#add_file(db_init, "a.txt", 'none')  # Inserting some test data
+#add_file(db_init, "b.txt", 'none')
+#add_host(db_init, 'none', '127.0.1.1')
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-print("Opening Server at 127.0.0.1 on port 12756")
-sock.bind(('127.0.0.1', 12756))
+print("Opening Server at 0.0.0.0 on port 12756")
+sock.bind(('0.0.0.0', 12756))
 sock.listen()
 
 global open
