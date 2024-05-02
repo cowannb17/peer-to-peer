@@ -180,7 +180,8 @@ def host_files(hosted_files_list):
     
 def on_close():
     # Since one of the peers is hosting, we need to notify the server that we are no longer hosting
-    client.notify_of_hosting([])
+    client.notify_not_hosting()
+    window.destroy()
 
 # Removes the file to host from the frame
 def remove_file(file_frame, hosted_files, label, button):
