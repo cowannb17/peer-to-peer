@@ -207,7 +207,6 @@ class client:
         for filename in downloads_list.split(":"):
             downloads.append( {"filename": filename, "checked": tk.BooleanVar()} ) # Creation of download dictionary
         
-        print("Downloads Fetched")
         sendRsa("close_connection", self.get_server_RSA_pubkey(), self.sock)
         self.sock.detach()
         return downloads
@@ -235,10 +234,8 @@ class client:
     def notify_of_hosting(self, files_to_host):
         # Get the actual name of each file
         file_names = [file.split("/")[-1] for file in files_to_host]
-        print("Files to host: ", file_names)
         #one liner to add double quotes around each file name and put them in a single string
         files = ':'.join([file_name for file_name in file_names])
-        print("Files to host string: ", files)
         
         # Connects to server
         status = self.__connect_to_server()

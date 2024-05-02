@@ -58,7 +58,6 @@ def get_file_list(db):
     filenames = str(filenames)[1:-1] # Removes the brackets from the string
     file_list = filenames.split(", ") # Creates a list of files from the file names
     file_list_sending_string = ':'.join([file.strip("'") for file in file_list]) # One liner to create a single string with files delimited by ":"
-    print("get_file_list result: ", file_list_sending_string)
     return file_list_sending_string
 
 def clear_file_list(db):
@@ -167,9 +166,7 @@ def accept_connection(conn, addr):
             # If the incoming data is "down_list" send the downloads list to the client
             if data == 'down_list':
                 file_list = get_file_list(db)
-                print("File list in down_list (server): ", file_list)
                 sendRsa(file_list, client_pubkey, conn) # Send file list to client
-                #might neen changes
             # If the incoming data is "connection_data" send back the ip that the user is using
             if data == 'connection_data':
                 ip = f"{addr[0]}"
@@ -197,7 +194,6 @@ def accept_connection(conn, addr):
                 file_string = recieveRsa(server_private_key, conn)
                 for file in file_string.split(":"):
                     # Strip the file of double quotes
-                    print("File string in host_files (server): ", file)
                     add_file(db, file, active_user)
                 
                 # add files to the database
