@@ -3,6 +3,7 @@ import rsa
 import socket
 import keyring
 import threading
+from math import floor
 from user import user as User
 from messageMethods import sendRsa, recieveRsa, recieveFileRsa
 
@@ -37,10 +38,8 @@ class peer:
             for percentage in download_progress:
                 
                 if percentage == "end":
-                    #print("Percentage Downloaded: 100")
                     yield 100
                     break
-                #print("Percentage Downloaded:", percentage)
                 yield int(percentage)
         return 
 
@@ -123,14 +122,13 @@ class peer:
             
             total_recieved_bytes += int(chunksize)
             
-            yield round(int(total_recieved_bytes) / int(encrypted_size) * 100) # Sends data upwards, like return but does not stop the method
+            yield floor(int(total_recieved_bytes) / int(encrypted_size) * 100) # Sends data upwards, like return but does not stop the method
 
         recieved_file = decrypted_recieved_file
 
         # If the response was empty, end the connectiom
         if not recieved_file:
             print("CLIENT: No data received from host peer when receiving file")
-            #sock.close() # No need to close socket as it is closed by the host
             return
 
         # Gets path of current working directory of the script, and creates the downloaded file there
@@ -142,9 +140,6 @@ class peer:
         with open(abs_filename, 'wb') as file:
             file.write(recieved_file)
 
-        # Closes connection as the requested file has been received
-        #sendRsa("close_connection", peer_pubkey, sock)
-        #sock.close()
         yield "end"
         return True
         
