@@ -38,24 +38,15 @@ def find_combo_boxes(parent):
     
     return combo_boxes
 
-def start_downloads(file_list):
-    peer_selections = [combo.get() for combo in find_combo_boxes(window)]
-    files = [file[0] for file in file_list]
-    clearFrame()
-    
+def download_files():
     tk.Label(frame, text="We're downloading your files now, don't go anywhere!").pack()
     downloads_frame = tk.Frame(frame)
     progress = tk.IntVar()
     progress_bar = ttk.Progressbar(downloads_frame, variable=progress, length=100, mode='determinate')
     downloads_frame.pack()
 
-    global peer
-    peer = Peer(client.user)
-    peer.configure_downloads(files, peer_selections)
-    downloads = peer.start_downloads()
-
     current_label = ""
-    for data in downloads:
+    for data in peer.start_downloads():
         if type(data) == str:
             current_label = tk.Label(downloads_frame, text=f"{data}:")
             current_label.pack()
@@ -69,6 +60,20 @@ def start_downloads(file_list):
             progress_bar.pack_forget()
 
     tk.Label(downloads_frame, text="All Files Downloaded!").pack()
+
+
+def start_downloads(file_list):
+    peer_selections = [combo.get() for combo in find_combo_boxes(window)]
+    files = [file[0] for file in file_list]
+    clearFrame()
+
+    global peer
+    peer = Peer(client.user)
+    peer.configure_downloads(files, peer_selections)
+    
+    thread = threading.Thread(target=download_files)
+    thread.daemon = True
+    thread.start()
 
 
 def select_location_frame(file_list):
