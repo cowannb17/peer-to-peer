@@ -140,7 +140,7 @@ class peer:
 
         # Creates file at abs_filename path and writes it as bytes to completion
         with open(abs_filename, 'wb') as file:
-            file.write(self.to_bytes(recieved_file))
+            file.write(recieved_file)
 
         # Closes connection as the requested file has been received
         #sendRsa("close_connection", peer_pubkey, sock)
@@ -155,8 +155,10 @@ class peer:
         path_to_file = self.hosted_files[file_index]
         
         # Reads the file and sends it to the client peer
-        with open(path_to_file, 'r') as file:
-            sendRsa(file.read(), peer_pubkey, conn)
+        with open(path_to_file, 'rb') as file:
+            file_bytes = file.read()
+            bits = b'abc123'
+            sendRsa(file_bytes, peer_pubkey, conn)
 
         conn.close()
         
@@ -219,7 +221,7 @@ class peer:
                     index = self.hosted_filenames.index(file)
 
                     if index == -1:
-                        print("HOST: ile not found in request file, index -1")
+                        print("HOST: file not found in request file, index -1")
                         sendRsa("file_not_available", peer_pubkey, conn)
                         conn.close()
                         return
@@ -272,20 +274,10 @@ class peer:
     # Turns a string into a byte string
     def to_bytes(self, message):
         return message.encode()
-    
-    # Encodes the message with the connected users public key
-    # Remember NOT TO ENCRYPT WITH OWN PUBKEY, encrypt with peers pukey
-    def encode_message(self, pubkey, message):
-        return rsa.encrypt(message, pubkey)
-
     # Turns byte string into string
     def to_string(self, message):
         return message.decode("utf-8")
-
-    # Decodes the message using our private key
-    def decode_message(self, message):
-        return self.to_string(rsa.decrypt(message, self.get_RSA_privkey()))
-
+        
     # Saves public key to keyring
     def save_RSA_pubkey(self, pubkey):
         pubkey_pem = pubkey.save_pkcs1().encode('utf-8')

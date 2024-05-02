@@ -1,8 +1,12 @@
 import rsa
 import socket
 
-def sendRsa(message: str, publicKey: rsa.PublicKey, socket: socket.socket):
-    encodedMessage = message.encode('utf-8')
+def sendRsa(message, publicKey: rsa.PublicKey, socket: socket.socket):
+    if type(message) != bytes:
+        encodedMessage = message.encode('utf-8')
+    else:
+        encodedMessage = message
+
     if len(encodedMessage) <= 53: # Message is short enough to send in one go
         encryptedMessage = rsa.encrypt(encodedMessage, publicKey)
         socket.sendall(encryptedMessage)
@@ -53,7 +57,7 @@ def recieveFileRsa(privateKey: rsa.PrivateKey, socket: socket.socket):
         if not encryptedMessage:
             yield "end"
             fullDecryptedMessage = decrypt_message(fullEncryptedMessage, privateKey)
-            yield fullDecryptedMessage.decode('utf-8')
+            yield fullDecryptedMessage
             break
 
         
