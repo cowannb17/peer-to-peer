@@ -55,7 +55,7 @@ def download_files():
             continue
         progress.set(data)
         if data == 100:
-            current_label['text'] += " Downloaded!"
+            current_label['text'] = current_label['text'] + " Downloaded!"
             progress.set(100)
             progress_bar.pack_forget()
 
