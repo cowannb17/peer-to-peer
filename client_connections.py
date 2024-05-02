@@ -11,6 +11,7 @@ class client:
     
     #class ClientConnection:
     def __init__(self):
+        self.server_ip = '127.0.0.1'
         """
         Initializes a ClientConnection object.
 
@@ -40,7 +41,7 @@ class client:
             gc.collect()
 
             # Key exchange between client and server
-            self.sock.connect(('127.0.0.1', 12756))
+            self.sock.connect((self.server_ip, 12756))
 
             # Let server know you want to send your public key
             self.sock.send(self.to_bytes("public_key"))
@@ -66,7 +67,7 @@ class client:
             self.save_user_id(uuid)
 
         elif self.load_user_id() is None:
-            self.sock.connect(('127.0.0.1', 12756))
+            self.sock.connect((self.server_ip, 12756))
 
             sendRsa("UUID_request", self.get_server_RSA_pubkey(), self.sock) # Send UUID to server
             uuid = recieveRsa(self.get_RSA_privkey(), self.sock) # Recieve verification from server
@@ -153,7 +154,7 @@ class client:
         try:
             # connects to server and recieves data
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect(('127.0.0.1', 12756))
+            self.sock.connect((self.server_ip, 12756))
 
             # Sends message with the uuid to the server
             sendRsa(f"UUID:{self.load_user_id()}", self.get_server_RSA_pubkey(), self.sock)
