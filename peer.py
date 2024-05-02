@@ -9,6 +9,7 @@ from messageMethods import sendRsa, recieveRsa
 class peer:
     def __init__(self, user : User):
         self.user = user
+        
 
     def configure_hosting(self, files_to_host):
         self.hosted_files = files_to_host

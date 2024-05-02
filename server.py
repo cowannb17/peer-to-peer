@@ -60,7 +60,7 @@ def get_file_list(db):
     file_list_sending_string = ':'.join([file.strip("'") for file in file_list]) # One liner to create a single string with files delimited by ":"
     return file_list_sending_string
 
-def clear_file_list(db):
+def clear_all_files(db):
     """
     Clears the file list in the database.
 
@@ -72,7 +72,11 @@ def clear_file_list(db):
     """
     db.execute_insert("DELETE FROM Files")
     
-def clear_host_list(db):
+def clear_file_list(db, uuid):
+    # Clear the file list for a specific user
+    db.execute_insert(f"DELETE FROM Files WHERE host_uuid LIKE '{uuid}'")
+    
+def clear_all_hosts(db):
     """
     Clears the host list in the database.
 
@@ -83,6 +87,10 @@ def clear_host_list(db):
     None
     """
     db.execute_insert("DELETE FROM Hosts")
+    
+def clear_host_list(db, uuid):
+    # Clear the host list for a specific user
+    db.execute_insert(f"DELETE FROM Hosts WHERE host_uuid LIKE '{uuid}'")
 
 
 def accept_connection(conn, addr):
@@ -196,8 +204,12 @@ def accept_connection(conn, addr):
                     # Strip the file of double quotes
                     add_file(db, file, active_user)
                 
-                # add files to the database
-
+            if data == 'stop_hosting':
+                # use active_user to clear the file list for the user
+                clear_file_list(db, active_user)
+                clear_host_list(db, active_user)
+                
+            
             # If the incoming data is "close_connection" end the connection to the client
             if data == 'close_connection':
                 print(f"Closing connection from {addr}")
@@ -221,8 +233,8 @@ db_init.create_table("Files", "filename, host_uuid")
 db_init.create_table("Hosts", "host_uuid, ip")
 
 # Since server is starting fresh, clear the file and host lists
-clear_file_list(db_init)
-clear_host_list(db_init)
+clear_all_files(db_init)
+clear_all_hosts(db_init)
 
 #db_init.insert_data("Files", "'a.txt', 'none'")  # Inserting some test data
 #db_init.insert_data("Files", "'b.txt', 'none'")

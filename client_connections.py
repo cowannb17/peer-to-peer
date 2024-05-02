@@ -249,3 +249,17 @@ class client:
         # Disconnects from server
         sendRsa("close_connection", self.get_server_RSA_pubkey(), self.sock)
         self.sock.detach()
+    
+    def notify_not_hosting(self):
+        # Connects to server
+        status = self.__connect_to_server()
+        if not status:
+            print("Failed to connect to server (notify_not_hosting)")
+            return
+
+        # Sends server list of files client wants to host
+        sendRsa("stop_hosting", self.get_server_RSA_pubkey(), self.sock)
+        
+        # Disconnects from server
+        sendRsa("close_connection", self.get_server_RSA_pubkey(), self.sock)
+        self.sock.detach()
