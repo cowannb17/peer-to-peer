@@ -196,13 +196,17 @@ class client:
 
         # Receives data on all available downloads
         downloads_list = recieveRsa(self.get_RSA_privkey(), self.sock)
+        
+        if len(downloads_list) == 0:
+            sendRsa("close_connection", self.get_server_RSA_pubkey(), self.sock)
+            self.sock.detach()
+            return None
 
         downloads = []
         # Creates a dictionary of lists of download files and checkbox boolean variables to associate a file with a checkbox later on in the downloads GUI
-        for filename in downloads_list.split(", "):
+        for filename in downloads_list.split(":"):
             downloads.append( {"filename": filename, "checked": tk.BooleanVar()} ) # Creation of download dictionary
         
-        print("Downloads Fetched")
         sendRsa("close_connection", self.get_server_RSA_pubkey(), self.sock)
         self.sock.detach()
         return downloads
@@ -231,7 +235,7 @@ class client:
         # Get the actual name of each file
         file_names = [file.split("/")[-1] for file in files_to_host]
         #one liner to add double quotes around each file name and put them in a single string
-        files = ','.join(['"' + file_name + '"' for file_name in file_names])
+        files = ':'.join([file_name for file_name in file_names])
         
         # Connects to server
         status = self.__connect_to_server()
