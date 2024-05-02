@@ -220,7 +220,7 @@ class client:
             return None
         
         # send server list of files the client wants to download
-        sendRsa("request_downloads", self.get_server_RSA_pubkey(), self.sock)
+        sendRsa("request_file_hosts", self.get_server_RSA_pubkey(), self.sock)
         sendRsa(download_request_list, self.get_server_RSA_pubkey(), self.sock)
 
         # Recieves list of users who will host the requested file(s)

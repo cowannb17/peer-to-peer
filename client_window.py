@@ -117,7 +117,7 @@ def request_downloads():
     for file in sort_by_checked:
         if file["checked"].get() == False:
             break
-        checked_downloads += file["filename"] + ","
+        checked_downloads += file["filename"] + ":"
 
     # Checks to see if no downloads are checked at all
     if (len(checked_downloads) == 0):
@@ -131,8 +131,9 @@ def request_downloads():
 
     
     host_list = []
-    for index in range(0, len(download_users.split(","))):
-        host_list.append((checked_downloads.split(",")[index], download_users.split(",")[index]))
+    for index in range(0, len(download_users.split("*"))):
+        #Adds list of hosts to the host_list variable
+        host_list.append((checked_downloads.split(":")[index], download_users.split("*")[index].split(":")))
     clearFrame()
     select_location_frame(host_list)
     
