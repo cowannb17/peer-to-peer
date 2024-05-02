@@ -43,20 +43,28 @@ def start_downloads(file_list):
     files = [file[0] for file in file_list]
     clearFrame()
     
+    tk.Label(frame, text="We're downloading your files now, don't go anywhere!").pack()
+    
+
     global peer
     peer = Peer(client.user)
     peer.configure_downloads(files, peer_selections)
     downloads = peer.start_downloads()
-    #for file in files:
-    #    try:
-    #        while True:
-    #            size = next(downloads)
-    #            break
-    #    except StopIteration:
-    #        return
-        
 
+    downloads_frame = tk.Frame(frame)
+    progress = tk.IntVar()
+    progress_bar = ttk.Progressbar(downloads_frame, variable=progress, length=100, mode='determinate')
+    for data in downloads:
+        if type(data) == str:
+            tk.Label(downloads_frame, text=data).pack()
+            progress.set(0)
+            progress_bar.pack()
+            continue
+        progress.set(data)
+        if data == 100:
+            progress_bar.pack_forget()
 
+    tk.Label(downloads_frame, text="All Files Downloaded!").pack()
 
 
 def select_location_frame(file_list):
@@ -235,7 +243,6 @@ def host_files_frame():
     warning = tk.Label(frame)
     tk.Button(frame, text="Browse", command=lambda: browse_file(files_host_frame, hosted_files, warning)).pack()
     tk.Button(frame, text='Host the File', command=lambda:[clearFrame(), host_files(hosted_files)]).pack()
-
 
 # TODO: add saving of options
 # Static frame setup of settings frame

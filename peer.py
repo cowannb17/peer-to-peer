@@ -4,7 +4,7 @@ import socket
 import keyring
 import threading
 from user import user as User
-from messageMethods import sendRsa, recieveRsa
+from messageMethods import sendRsa, recieveRsa, recieveFileRsa
 
 class peer:
     def __init__(self, user : User):
@@ -30,23 +30,13 @@ class peer:
         for index, file in enumerate(self.requestedFiles):
             ip = self.hosts[index]
             print("Getting file {} from host {}".format(file, ip))
-            self.start_download(ip, file)
-            
-            
-            #try:
-            #    while True:
-            #        size = next(download)
-            #        yield f"{file}:size:{size}"
-            #        break
-            #except StopIteration:
-            #    return
-            
-            #try:
-            #    while True:
-            #        progression = next(download)
-            #        yield progression
-            #except StopIteration:
-            #    return
+            download_progress = self.start_download(ip, file)
+
+            for percentage in download_progress:
+                if percentage == "end":
+                    yield 100
+                    break
+                yield download_progress
         return 
 
 
@@ -91,7 +81,6 @@ class peer:
 
 
         recieved_filename, size = response.split(":")
-        #yield size # Sends the file size to the parent function
 
         # Asks the host peer for the file set by filename
         sendRsa(f"request_file:{filename}", peer_pubkey, sock)
@@ -111,7 +100,13 @@ class peer:
             return
         
         # Recieve the file from the host peer and write the decrypted data into the recieved_file variable
-        recieved_file = recieveRsa(self.get_RSA_privkey(), sock)
+        recieved_file = recieveFileRsa(self.get_RSA_privkey(), sock)
+
+        # Gets number of recieved bytes from the recieveFileRsa function and gives how far along the download is (percentage wise) to the parent function
+        total_recieved_bytes = 0
+        for chunksize in recieved_file:
+            total_recieved_bytes += chunksize
+            yield (int(total_recieved_bytes) / int(size)) * 100 # Sends data upwards, like return but does not stop the method
 
         # If the response was empty, end the connectiom
         if not recieved_file:
@@ -131,6 +126,7 @@ class peer:
         # Closes connection as the requested file has been received
         sendRsa("close_connection", peer_pubkey, sock)
         sock.close()
+        yield "end"
         return True
         
 
